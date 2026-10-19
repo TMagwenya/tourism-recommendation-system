@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | Explore Malawi</title>
+</head>
+
+<body>
+
+```
+<h1>Create Your Account</h1>
+
+<p>Join Explore Malawi to discover destinations that match your interests.</p>
+
+<!-- Display messages from Flask -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+{% endwith %}
+
+<form method="POST" action="{{ url_for('register') }}">
+
+    <div>
+        <label for="username">Username:</label>
+        <input
+            type="text"
+            id="username"
+            name="username"
+            required
+            minlength="3"
+            maxlength="50"
+            autocomplete="username"
+        >
+    </div>
+
+    <br>
+
+    <div>
+        <label for="email">Email:</label>
+        <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            maxlength="254"
+            autocomplete="email"
+        >
+    </div>
+
+    <br>
+
+    <div>
+        <label for="password">Password:</label>
+        <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            minlength="8"
+            autocomplete="new-password"
+        >
+    </div>
+
+    <br>
+
+    <div>
+        <label for="confirm_password">Confirm Password:</label>
+        <input
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            required
+            minlength="8"
+            autocomplete="new-password"
+        >
+    </div>
+
+    <br>
+
+    <button type="submit">Create Account</button>
+
+</form>
+
+<p>
+    Already have an account?
+    <a href="{{ url_for('login') }}">Log in here</a>.
+</p>
+
+<p>
+    <a href="{{ url_for('home') }}">Back to Home</a>
+</p>
+```
+
+</body>
+</html>
