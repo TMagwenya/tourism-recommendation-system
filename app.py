@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager, UserMixin ,login_user
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(UserMixin):
@@ -166,6 +166,13 @@ def login():
         return redirect(url_for("home"))
 
     return render_template("login.html")
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    flash("You have been logged out successfully.", "success")
+    return redirect(url_for("home"))
 
 
 if __name__ == "__main__":

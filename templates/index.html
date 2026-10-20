@@ -4,21 +4,129 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Explore Malawi</title>
+    <title>Tourism Personalized Recommendation System </title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
 
-    <h1>Welcome to Malawi Tourism Recommendations</h1>
+    <!-- Navigation Bar -->
+    <header class="navbar">
 
-    <p>
-        Discover tourism destinations that match your interests,
-        budget, activities, and travel duration.
-    </p>
+        <a href="{{ url_for('home') }}" class="logo">
+            Explore Malawi
+        </a>
 
-    <p>
-        Create an account or log in to explore personalized recommendations.
-    </p>
+        <nav>
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="#about">About</a>
+        </nav>
+
+    </header>
+
+
+    <!-- Homepage Hero Section -->
+    <main>
+
+        <section class="hero">
+
+            <div class="hero-content">
+
+                <p class="eyebrow">
+                    DISCOVER THE WARM HEART OF AFRICA
+                </p>
+
+                <h1>
+                    Tourism Personalized Recommendation System
+                </h1>
+
+                
+
+                <p class="hero-description">
+                    Discover the beauty of Malawi through personalized
+                    tourism recommendations. Find destinations that
+                    match your interests, budget, preferred activities,
+                    and travel duration. Let our intelligent
+                    recommendation system help you plan your next
+                    adventure.
+                </p>
+
+                <!-- Homepage Buttons -->
+                <div class="hero-buttons">
+                    <a href="{{ url_for('register') }}"
+                       class="primary-button">
+                        Get Started
+                    </a>
+
+                    <a href="{{ url_for('login') }}"
+                       class="secondary-button">
+                        Login
+                    </a>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- About Section -->
+        <section class="about" id="about">
+
+            <p class="eyebrow">ABOUT OUR SYSTEM</p>
+
+            <h2>Discover Malawi Your Way</h2>
+
+            <p>
+                This system helps tourists discover suitable destinations
+                in Malawi using a content-based recommendation model.
+                It considers individual travel preferences, including
+                interests, budget, activities, and duration. A
+                conversational AI component will also help users refine
+                their preferences and explore relevant destinations.
+            </p>
+
+            <div class="feature-container">
+
+                <article class="feature-card">
+                    <h3>Personalized Recommendations</h3>
+                    <p>
+                        Discover destinations based on your interests
+                        and preferred activities.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <h3>Budget-Friendly Travel</h3>
+                    <p>
+                        Find tourism destinations suited to your
+                        available budget.
+                    </p>
+                </article>
+
+                <article class="feature-card">
+                    <h3>Conversational AI</h3>
+                    <p>
+                        Refine your travel preferences through a
+                        conversational tourism assistant.
+                    </p>
+                </article>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>
+            &copy; 2026 Tourism Personalized Recommendation System
+            | Malawi
+        </p>
+    </footer>
 
 </body>
 </html>
