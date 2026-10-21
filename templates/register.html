@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 
-<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Create Account | Explore Malawi</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
 
-```
+
 <h1>Create Your Account</h1>
 
 <p>Join Explore Malawi to discover destinations that match your interests.</p>
@@ -24,22 +27,24 @@
 <form method="POST" action="{{ url_for('register') }}">
 
     <div>
-        <label for="username">Username:</label>
+        <label for="username">Username</label><br>
         <input
             type="text"
+    
             id="username"
             name="username"
             required
             minlength="3"
             maxlength="50"
             autocomplete="username"
+            placeholder="Enter your username"
         >
     </div>
 
     <br>
 
     <div>
-        <label for="email">Email:</label>
+        <label for="email">Email</label><br>
         <input
             type="email"
             id="email"
@@ -47,13 +52,14 @@
             required
             maxlength="254"
             autocomplete="email"
+            placeholder="Enter your email"
         >
     </div>
 
     <br>
 
     <div>
-        <label for="password">Password:</label>
+        <label for="password">Password</label><br>
         <input
             type="password"
             id="password"
@@ -61,13 +67,14 @@
             required
             minlength="8"
             autocomplete="new-password"
+            placeholder="Please Enter password"
         >
     </div>
 
     <br>
 
     <div>
-        <label for="confirm_password">Confirm Password:</label>
+        <label for="confirm_password">Confirm Password</label><br>
         <input
             type="password"
             id="confirm_password"
@@ -75,6 +82,7 @@
             required
             minlength="8"
             autocomplete="new-password"
+            placeholder="Please Enter password"
         >
     </div>
 
