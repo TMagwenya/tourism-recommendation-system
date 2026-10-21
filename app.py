@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required ,current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(UserMixin):
@@ -73,6 +73,64 @@ def initialize_database():
 def home():
     return render_template("index.html")
 
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    return render_template("dashboard.html")
+
+@app.route("/preferences", methods=["GET", "POST"])
+@login_required
+def preferences():
+    if request.method == "POST":
+        preferred_location = request.form.get("preferred_location", "").strip()
+        budget_raw = request.form.get("budget", "").strip()
+        preferred_activity = request.form.get("preferred_activity", "").strip()
+        duration_raw = request.form.get("duration_days", "").strip()
+        interest_category = request.form.get("interest_category", "").strip()
+
+        try:
+            budget = float(budget_raw)
+            duration_days = int(duration_raw)
+        except ValueError:
+            flash("Please enter a valid budget and duration.", "error")
+            return render_template("preferences.html")
+
+        if budget < 0 or duration_days < 1:
+            flash("Budget must be zero or more, and duration must be at least one day.", "error")
+            return render_template("preferences.html")
+
+        connection = get_db_connection()
+        try:
+            connection.execute(
+                """
+                INSERT INTO tourist_preferences (
+                    user_id,
+                    preferred_location,
+                    budget,
+                    preferred_activity,
+                    duration_days,
+                    interest_category
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    current_user.id,
+                    preferred_location,
+                    budget,
+                    preferred_activity,
+                    duration_days,
+                    interest_category
+                )
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        flash("Your travel preferences have been saved successfully!", "success")
+        return redirect(url_for("dashboard"))
+
+    return render_template("preferences.html")
+               
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -161,9 +219,9 @@ def login():
         )
 
         login_user(logged_in_user)
-
+  
         flash("Login successful!", "success")
-        return redirect(url_for("home"))
+        return redirect(url_for("dashboard"))
 
     return render_template("login.html")
 

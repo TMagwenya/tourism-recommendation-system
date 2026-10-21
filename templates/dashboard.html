@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>User Dashboard | Explore Malawi</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <header class="navbar">
+
+        <a href="{{ url_for('dashboard') }}" class="logo">
+            Explore Malawi
+        </a>
+
+        <nav>
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('home') }}">Home</a>
+
+            <a href="{{ url_for('logout') }}" class="nav-button">
+                Logout
+            </a>
+        </nav>
+
+    </header>
+
+
+    <!-- Dashboard Welcome Section -->
+    <main>
+
+        <section class="dashboard-hero">
+
+            <p class="eyebrow">YOUR PERSONAL TRAVEL SPACE</p>
+
+            <h1>Explore Malawi Your Way</h1>
+
+            <p>
+                Welcome, {{ current_user.username }}!
+                Discover destinations that match your interests,
+                budget, and travel preferences.
+            </p>
+
+        </section>
+
+
+        <!-- Dashboard Feature Cards -->
+        <section class="dashboard-content">
+
+            <h2>What Would You Like to Do?</h2>
+
+            <div class="feature-container">
+
+                <article class="feature-card">
+                    <h3>Find Destinations</h3>
+
+                    <p>
+                        Explore tourism destinations across Malawi
+                        and discover places worth visiting.
+                    </p>
+
+                    <span class="dashboard-status">
+                        Coming Soon
+                    </span>
+                </article>
+
+
+                 <article class="feature-card">
+                   <h3>My Travel Preferences</h3>
+
+
+                    <p>
+                      Tell us about your budget, interests,
+                      preferred activities, and trip duration.
+                    </p>
+
+                    <a href="{{ url_for('preferences') }}" class="primary-button">Set Preferences</a>
+
+
+                </article>
+
+
+
+                <article class="feature-card">
+                    <h3>My Recommendations</h3>
+
+                    <p>
+                        Find destinations ranked according to
+                        your personal travel preferences.
+                    </p>
+
+                    <span class="dashboard-status">
+                        Coming Soon
+                    </span>
+                </article>
+
+
+                <article class="feature-card">
+                    <h3>Travel Assistant</h3>
+
+                    <p>
+                        Get help exploring destinations and refining
+                        your travel choices through conversation.
+                    </p>
+
+                    <span class="dashboard-status">
+                        Coming Soon
+                    </span>
+                </article>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>
+            &copy; 2026 Tourism Personalized Recommendation System
+            | Malawi
+        </p>
+    </footer>
+
+</body>
+</html>

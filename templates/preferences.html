@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Travel Preferences | Explore Malawi</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <header class="navbar">
+
+        <a href="{{ url_for('dashboard') }}" class="logo">
+            Explore Malawi
+        </a>
+
+        <nav>
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('home') }}">Home</a>
+        </nav>
+
+    </header>
+
+    <!-- Travel Preferences Form -->
+    <main class="preferences-page">
+
+        <section class="preferences-container">
+
+            <p class="eyebrow">PLAN YOUR NEXT ADVENTURE</p>
+
+            <h1>Tell Us About Your Travel Preferences</h1>
+
+            <p class="form-description">
+                Help us discover tourism destinations in Malawi
+                that match your interests, budget, and travel plans.
+            </p>
+
+            <form method="POST" action="{{ url_for('preferences') }}">
+
+                <!-- Preferred Location -->
+                <div class="form-group">
+                    <label for="preferred_location">
+                        Preferred Location
+                    </label>
+
+                    <select id="preferred_location"
+                            name="preferred_location"
+                            required>
+
+                        <option value="">Choose a location</option>
+                        <option value="Northern Malawi">Northern Malawi</option>
+                        <option value="Central Malawi">Central Malawi</option>
+                        <option value="Southern Malawi">Southern Malawi</option>
+                        <option value="Anywhere in Malawi">Anywhere in Malawi</option>
+
+                    </select>
+                </div>
+
+                <!-- Budget -->
+                <div class="form-group">
+                    <label for="budget">
+                        Travel Budget (MWK)
+                    </label>
+
+                    <input type="number"
+                           id="budget"
+                           name="budget"
+                           min="0"
+                           step="1"
+                           placeholder="Enter your budget in MWK"
+                           required>
+                </div>
+
+                <!-- Preferred Activity -->
+                <div class="form-group">
+                    <label for="preferred_activity">
+                        Preferred Activity
+                    </label>
+
+                    <select id="preferred_activity"
+                            name="preferred_activity"
+                            required>
+
+                        <option value="">Choose an activity</option>
+                        <option value="Wildlife">Wildlife viewing</option>
+                        <option value="Hiking">Hiking and mountain climbing</option>
+                        <option value="Water activities">Water activities</option>
+                        <option value="Culture">Cultural experiences</option>
+                        <option value="Camping">Camping</option>
+                        <option value="Relaxation">Relaxation</option>
+                        <option value="Sightseeing">Sightseeing</option>
+
+                    </select>
+                </div>
+
+                <!-- Duration -->
+                <div class="form-group">
+                    <label for="duration_days">
+                        Trip Duration (Days)
+                    </label>
+
+                    <input type="number"
+                           id="duration_days"
+                           name="duration_days"
+                           min="1"
+                           max="365"
+                           placeholder="For example, 3"
+                           required>
+                </div>
+
+                <!-- Interest Category -->
+                <div class="form-group">
+                    <label for="interest_category">
+                        Main Interest
+                    </label>
+
+                    <select id="interest_category"
+                            name="interest_category"
+                            required>
+
+                        <option value="">Choose your main interest</option>
+                        <option value="Nature">Nature</option>
+                        <option value="Adventure">Adventure</option>
+                        <option value="Wildlife">Wildlife</option>
+                        <option value="Culture">Culture and heritage</option>
+                        <option value="Beaches">Beaches and lake tourism</option>
+                        <option value="Relaxation">Relaxation</option>
+
+                    </select>
+                </div>
+
+                <button type="submit" class="primary-button">
+                    Save My Preferences
+                </button>
+
+            </form>
+
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <p>
+            &copy; 2026 Tourism Personalized Recommendation System | Malawi
+        </p>
+    </footer>
+
+</body>
+</html>
