@@ -130,6 +130,31 @@ def preferences():
         return redirect(url_for("dashboard"))
 
     return render_template("preferences.html")
+
+@app.route("/my-preferences")
+@login_required
+def my_preferences():
+    connection = get_db_connection()
+
+
+    try:
+        preferences_list = connection.execute(
+        """
+        SELECT preferred_location, budget, preferred_activity,
+               duration_days, interest_category
+        FROM tourist_preferences
+        WHERE user_id = ?
+        ORDER BY preference_id DESC
+        """,
+        (current_user.id,)
+    ).fetchall()
+    finally:
+        connection.close()
+
+    return render_template(
+        "my_preferences.html",
+        preferences_list=preferences_list
+)
                
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -232,8 +257,121 @@ def logout():
     flash("You have been logged out successfully.", "success")
     return redirect(url_for("home"))
 
+def add_malawi_destinations():
+    connection = get_db_connection()
 
+    destinations = [
+        (
+            "Lake Malawi",
+            "Mangochi",
+            "A beautiful freshwater lake known for its clear water, beaches, and colourful fish.",
+            "medium",
+            "Swimming, Snorkelling, Kayaking, Boat Trips,Scuba diving",
+            3
+        ),
+        (
+            "Liwonde National Park",
+            "Southern Malawi",
+            "A wildlife destination known for elephants, hippos, crocodiles, and safari experiences.",
+            "high",
+            "Wildlife Safari, Bird Watching, Boat Safari,Helicopter rides",
+            2
+        ),
+        (
+            "Mount Mulanje",
+            "Mulanje",
+            "A spectacular mountain destination offering hiking trails, waterfalls, and scenic landscapes.",
+            "medium",
+            "Hiking, Mountain Climbing, Nature Walks, Photography",
+            3
+        ),
+        (
+            "Nyika National Park",
+            "Northern Malawi",
+            "A highland national park featuring rolling grasslands, wildlife, and beautiful scenery.",
+            "high",
+            "Wildlife Viewing, Hiking, Bird Watching, Photography",
+            3
+        ),
+        (
+            "Lake Chilwa",
+            "Southern Region",
+            "A shallow lake and wetland area known for birdlife, fishing communities, and natural scenery.",
+            "low",
+            "Bird Watching, Photography, Cultural Experiences",
+            1
+        ),
+        (
+            "Majete Wildlife reserve",
+            "Southern Region",
+            "Majete now hosts more than 4000 animals, including the Big 5! Elephants, lion, leopard, black rhinos, buffalos, elands, nyalas, zebras and hippos can be seen in the reserve. ",
+            "low",
+            "Game drive,Walking Safari,Boat Safari",
+            3
+        ),
+        (
+            "Kasungu National Park",
+            "Southern Region",
+            "The Park has over 300 species of birds which include a variety of waterbirds such as the palearctic migrant White Stork. and woodland birds such as the Shelley’s Sunbird",
+            "medium",
+            "Sport Fishing,Bird Watching,historical sites visits, Game Viewing",
+            1
+        ),
+        (
+            "Nkhotankhota Wildlife Reserve",
+            "Northern Region",
+            "Nkhotakota is a rugged terrain crossed by many rivers tumbling down the edge of the escarpment as they make their way to the lake",
+            "medium",
+            "Fishing,Walking Safari,Canoeing,Bird Watching",
+            1
+        ),
+        (
+            "Vwaza Wildlife Reserve",
+            "Northern Region",
+            "It offers four of the five big games namely Elephant, Buffalo, Lion, Leopard and animal species large numbers of hippopotamus, and many others.",
+            "low",
+            "Game Viewing,Janda Hill,Bird Watching",
+            1
+        )
+            
+    ]
+    
+    for destination in destinations:
+        existing = connection.execute(
+            "SELECT 1 FROM destinations WHERE name = ? AND location = ?",
+            (destination[0], destination[1])
+        ).fetchone()
+
+        if existing is None:
+            connection.execute("""
+                INSERT INTO destinations (
+                    name, location, description,
+                    budget_level, activities, recommended_duration
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            """, destination)
+
+    connection.commit()
+    connection.close()
+
+ 
+
+@app.route("/check-destinations")
+def check_destinations():
+    connection = get_db_connection()
+
+    destinations = connection.execute(
+        "SELECT * FROM destinations"
+    ).fetchall()
+
+    connection.close()
+
+    return {
+        "number_of_destinations": len(destinations),
+        "destinations": [dict(row) for row in destinations]
+    }
+   
 if __name__ == "__main__":
     initialize_database()
+    add_malawi_destinations()
     app.run(debug=True,port=5001)
     
