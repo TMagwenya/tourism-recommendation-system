@@ -4,63 +4,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Explore Malawi</title>
+
+
+<title>Login | Explore Malawi</title>
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}">
+
+
 </head>
 
-<body>
+<body class="login-page">
 
-```
-<h1>Welcome Back!</h1>
 
-<p>Log in to discover personalized tourism recommendations in Malawi.</p>
+<div class="login-container">
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% for category, message in messages %}
-        <p>{{ message }}</p>
-    {% endfor %}
-{% endwith %}
+    <div class="login-card">
 
-<form method="POST" action="{{ url_for('login') }}">
+        <h1>Welcome Back!</h1>
 
-    <div>
-        <label for="email">Email:</label>
-        <input
-            type="email"
-            id="email"
-            name="email"
-            required
-            autocomplete="email"
-        >
+        <p class="login-description">
+            Log in to discover personalized tourism recommendations in Malawi.
+        </p>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p class="login-message {{ category }}">
+                    {{ message }}
+                </p>
+            {% endfor %}
+        {% endwith %}
+
+        <!-- Login form -->
+        <form method="POST" action="{{ url_for('login') }}">
+
+            <div class="login-field">
+                <label for="email">Email:</label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email address"
+                    required
+                    autocomplete="email"
+                >
+            </div>
+
+            <div class="login-field">
+                <label for="password">Password:</label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <button type="submit" class="login-button">
+                Log In
+            </button>
+
+        </form>
+
+        <p style="text-align: center; margin-top: 22px;">
+            Don't have an account?
+            <a href="{{ url_for('register') }}">Create an account</a>.
+        </p>
+
+        <p style="text-align: center;">
+            <a href="{{ url_for('home') }}">Back to Home</a>
+        </p>
+
     </div>
 
-    <br>
+</div>
 
-    <div>
-        <label for="password">Password:</label>
-        <input
-            type="password"
-            id="password"
-            name="password"
-            required
-            autocomplete="current-password"
-        >
-    </div>
-
-    <br>
-
-    <button type="submit">Log In</button>
-
-</form>
-
-<p>
-    Don't have an account?
-    <a href="{{ url_for('register') }}">Create an account</a>.
-</p>
-
-<p>
-    <a href="{{ url_for('home') }}">Back to Home</a>
-</p>
-```
 
 </body>
 </html>

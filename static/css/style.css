@@ -70,7 +70,10 @@ body {
     display: flex;
     align-items: center;
     padding: 80px 10%;
-    background: linear-gradient(135deg, #e5f1e7, #f6f4e8);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    background-image: url("../images/Lake Mw.jpg");
 }
 
 .hero-content {
@@ -137,9 +140,14 @@ body {
 
 /* Dashboard welcome section */
 .dashboard-hero {
-    padding: 65px 8%;
-    background: linear-gradient(135deg, #e5f1e7, #f6f4e8);
-}
+    padding: 150px 10%;
+    background-image: url("../images/lakeview.jpg");
+background-size: cover;
+background-position: center;
+background-repeat: no-repeat;
+background-attachment: fixed;
+    
+    
 
 .dashboard-hero h1 {
     color: #173e2b;
@@ -253,4 +261,413 @@ body {
     .preferences-container h1 {
         font-size: 1.6rem;
     }
+}
+
+/* =================================
+REGISTRATION PAGE
+================================= */
+
+.register-page {
+min-height: 100vh;
+margin: 0;
+font-family: Arial, sans-serif;
+
+
+/* Temporary background colour until you add your image */
+
+background-image: url("../images/Lake Mw.jpg");
+background-size: cover;
+background-position: center;
+background-repeat: no-repeat;
+background-attachment: fixed;
+
+
+}
+
+/* Centres the registration card */
+.register-container {
+min-height: 100vh;
+display: flex;
+justify-content: center;
+align-items: center;
+padding: 30px 20px;
+box-sizing: border-box;
+}
+
+/* Registration form card */
+.register-card {
+width: 100%;
+max-width: 450px;
+padding: 35px;
+background-color: rgba(255, 255, 255, 0.3);
+border-radius: 15px;
+box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+box-sizing: border-box;
+}
+
+.register-card h1 {
+margin-top: 0;
+margin-bottom: 12px;
+color: #1b5e20;
+text-align: center;
+}
+
+.register-description {
+margin-bottom: 25px;
+color: #555;
+text-align: center;
+line-height: 1.6;
+}
+
+/* Form fields */
+.register-field {
+margin-bottom: 18px;
+}
+
+.register-field label {
+display: block;
+margin-bottom: 7px;
+color: #333;
+font-weight: bold;
+}
+
+.register-field input {
+width: 100%;
+padding: 12px;
+border: 1px solid #ccc;
+border-radius: 7px;
+font-size: 15px;
+box-sizing: border-box;
+}
+
+.register-field input:focus {
+outline: none;
+border-color: #2e7d32;
+box-shadow: 0 0 4px rgba(46, 125, 50, 0.35);
+}
+
+/* Green Create Account button */
+.register-button {
+width: 100%;
+padding: 13px;
+margin-top: 5px;
+background-color: #2e7d32;
+color: white;
+border: none;
+border-radius: 7px;
+font-size: 16px;
+font-weight: bold;
+cursor: pointer;
+transition: background-color 0.3s ease;
+}
+
+.register-button:hover {
+background-color: #1b5e20;
+}
+
+/* Login and home links */
+.register-login,
+.register-home {
+text-align: center;
+margin-top: 20px;
+margin-bottom: 0;
+color: #555;
+}
+
+.register-card a {
+color: #2e7d32;
+text-decoration: none;
+font-weight: bold;
+}
+
+.register-card a:hover {
+text-decoration: underline;
+}
+
+/* Flash messages */
+.register-message {
+padding: 10px;
+border-radius: 6px;
+text-align: center;
+overflow-wrap: anywhere;
+}
+
+.register-message.success {
+background-color: #e8f5e9;
+color: #1b5e20;
+}
+
+.register-message.error {
+background-color: #ffebee;
+color: #b71c1c;
+}
+
+/* Adjust the form for smaller screens */
+@media (max-width: 480px) {
+.register-container {
+padding: 20px 12px;
+}
+
+
+.register-card {
+    padding: 25px 20px;
+}
+
+
+}
+
+/* =================================
+MY TRAVEL PREFERENCES PAGE
+================================= */
+
+.my-preferences-page {
+min-height: 100vh;
+margin: 0;
+padding: 40px 20px;
+background-color: #f1f8f2;
+font-family: Arial, sans-serif;
+box-sizing: border-box;
+}
+
+.preferences-container {
+max-width: 750px;
+margin: 0 auto;
+}
+
+.preferences-card {
+padding: 30px;
+background-color: #ffffff;
+border-radius: 12px;
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.preferences-card h1 {
+color: #1b5e20;
+text-align: center;
+}
+
+.preferences-intro {
+margin-bottom: 30px;
+color: #555555;
+text-align: center;
+line-height: 1.6;
+}
+
+.saved-preference {
+padding: 20px;
+margin-bottom: 20px;
+border: 1px solid #dce8dc;
+border-radius: 8px;
+background-color: #fbfdfb;
+}
+
+.saved-preference h2 {
+color: #2e7d32;
+font-size: 20px;
+}
+
+.saved-preference p {
+line-height: 1.7;
+overflow-wrap: anywhere;
+}
+
+.preferences-actions {
+display: flex;
+justify-content: center;
+flex-wrap: wrap;
+gap: 12px;
+margin-top: 25px;
+}
+
+.preferences-button {
+display: inline-block;
+padding: 12px 20px;
+border-radius: 6px;
+background-color: #2e7d32;
+color: white;
+text-decoration: none;
+text-align: center;
+}
+
+.preferences-button:hover {
+background-color: #1b5e20;
+}
+
+.preferences-button.secondary {
+background-color: #555555;
+}
+
+.preferences-button.secondary:hover {
+background-color: #333333;
+}
+
+.no-preferences {
+padding: 20px;
+background-color: #f5f5f5;
+border-radius: 8px;
+text-align: center;
+line-height: 1.7;
+}
+
+@media (max-width: 480px) {
+.my-preferences-page {
+padding: 20px 12px;
+}
+
+
+.preferences-card {
+    padding: 20px;
+}
+
+.preferences-button {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
+}
+
+/* =================================
+LOGIN  PAGE
+================================= */
+
+.login-page {
+min-height: 100vh;
+margin: 0;
+font-family: Arial, sans-serif;
+
+/* Temporary background colour until you add your image */
+
+background-image: url("../images/Lake Mw.jpg");
+background-size: cover;
+background-position: center;
+background-repeat: no-repeat;
+background-attachment: fixed;
+
+
+}
+
+/* Centres the login card */
+.login-container {
+min-height: 80vh;
+display: flex;
+justify-content: center;
+align-items: center;
+padding: 30px 20px;
+box-sizing: border-box;
+}
+
+/* login form card */
+.login-card {
+width: 100%;
+max-width: 450px;
+padding: 35px;
+background-color: rgba(255, 255, 255, 0.3);
+border-radius: 15px;
+box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+box-sizing: border-box;
+}
+
+.login-card h1 {
+margin-top: 0;
+margin-bottom: 12px;
+color: #1b5e20;
+text-align: center;
+}
+
+.login-description {
+margin-bottom: 25px;
+color: #555;
+text-align: center;
+line-height: 1.6;
+}
+
+/* Form fields */
+.login-field {
+margin-bottom: 18px;
+}
+
+.login-field label {
+display: block;
+margin-bottom: 7px;
+color: #333;
+font-weight: bold;
+}
+
+.login-field input {
+width: 100%;
+padding: 12px;
+border: 1px solid #ccc;
+border-radius: 7px;
+font-size: 15px;
+box-sizing: border-box;
+}
+
+.login-field input:focus {
+outline: none;
+border-color: #2e7d32;
+box-shadow: 0 0 4px rgba(46, 125, 50, 0.35);
+}
+
+/* Green login button */
+.login-button {
+width: 100%;
+padding: 13px;
+margin-top: 5px;
+background-color: #2e7d32;
+color: white;
+border: none;
+border-radius: 7px;
+font-size: 16px;
+font-weight: bold;
+cursor: pointer;
+transition: background-color 0.3s ease;
+}
+
+.login-button:hover {
+background-color: #1b5e20;
+}
+
+.login-card a {
+color: #2e7d32;
+text-decoration: none;
+font-weight: bold;
+}
+
+.login-card a:hover {
+text-decoration: underline;
+}
+
+/* Flash messages */
+.login-message {
+padding: 10px;
+border-radius: 6px;
+text-align: center;
+overflow-wrap: anywhere;
+}
+
+.login-message.success {
+background-color: #e8f5e9;
+color: #1b5e20;
+}
+
+.login-message.error {
+background-color: #ffebee;
+color: #b71c1c;
+}
+
+/* Adjust the form for smaller screens */
+@media (max-width: 480px) {
+.login-container {
+padding: 20px 12px;
+}
+
+
+.login-card {
+    padding: 25px 20px;
+}
+
+
+}
+
 }

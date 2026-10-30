@@ -1,106 +1,116 @@
 <!DOCTYPE html>
 
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Create Account | Explore Malawi</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
+<title>Create Account | Explore Malawi</title>
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}">
+
+
 </head>
 
-<body>
+<body class="register-page">
 
 
-<h1>Create Your Account</h1>
+<div class="register-container">
 
-<p>Join Explore Malawi to discover destinations that match your interests.</p>
+    <div class="register-card">
 
-<!-- Display messages from Flask -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% for category, message in messages %}
-        <p>{{ message }}</p>
-    {% endfor %}
-{% endwith %}
+        <h1>Create Your Account</h1>
 
-<form method="POST" action="{{ url_for('register') }}">
+        <p class="register-description">
+            Join Explore Malawi to discover destinations that match your interests.
+        </p>
 
-    <div>
-        <label for="username">Username</label><br>
-        <input
-            type="text"
-    
-            id="username"
-            name="username"
-            required
-            minlength="3"
-            maxlength="50"
-            autocomplete="username"
-            placeholder="Enter your username"
-        >
+        <!-- Display messages from Flask -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p class="register-message {{ category }}">
+                    {{ message }}
+                </p>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('register') }}">
+
+            <div class="register-field">
+                <label for="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    required
+                    minlength="3"
+                    maxlength="50"
+                    autocomplete="username"
+                    placeholder="Enter your username"
+                >
+            </div>
+
+            <div class="register-field">
+                <label for="email">Email</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    required
+                    maxlength="254"
+                    autocomplete="email"
+                    placeholder="Enter your email"
+                >
+            </div>
+
+            <div class="register-field">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
+                    placeholder="Enter your password"
+                >
+            </div>
+
+            <div class="register-field">
+                <label for="confirm_password">Confirm Password</label>
+                <input
+                    type="password"
+                    id="confirm_password"
+                    name="confirm_password"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
+                    placeholder="Confirm your password"
+                >
+            </div>
+
+            <button type="submit" class="register-button">
+                Create Account
+            </button>
+
+        </form>
+
+        <p class="register-login">
+            Already have an account?
+            <a href="{{ url_for('login') }}">Log in here</a>.
+        </p>
+
+        <p class="register-home">
+            <a href="{{ url_for('home') }}">Back to Home</a>
+        </p>
+
     </div>
 
-    <br>
+</div>
 
-    <div>
-        <label for="email">Email</label><br>
-        <input
-            type="email"
-            id="email"
-            name="email"
-            required
-            maxlength="254"
-            autocomplete="email"
-            placeholder="Enter your email"
-        >
-    </div>
-
-    <br>
-
-    <div>
-        <label for="password">Password</label><br>
-        <input
-            type="password"
-            id="password"
-            name="password"
-            required
-            minlength="8"
-            autocomplete="new-password"
-            placeholder="Please Enter password"
-        >
-    </div>
-
-    <br>
-
-    <div>
-        <label for="confirm_password">Confirm Password</label><br>
-        <input
-            type="password"
-            id="confirm_password"
-            name="confirm_password"
-            required
-            minlength="8"
-            autocomplete="new-password"
-            placeholder="Please Enter password"
-        >
-    </div>
-
-    <br>
-
-    <button type="submit">Create Account</button>
-
-</form>
-
-<p>
-    Already have an account?
-    <a href="{{ url_for('login') }}">Log in here</a>.
-</p>
-
-<p>
-    <a href="{{ url_for('home') }}">Back to Home</a>
-</p>
-```
 
 </body>
 </html>

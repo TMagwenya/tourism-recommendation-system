@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+```
+<title>My Travel Preferences | Explore Malawi</title>
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}">
+
+
+</head>
+
+<body class="my-preferences-page">
+
+
+<main class="preferences-container">
+
+    <section class="preferences-card">
+
+        <h1>My Travel Preferences</h1>
+
+        <p class="preferences-intro">
+            Review the travel preferences you have saved.
+        </p>
+
+        {% if preferences_list %}
+
+            {% for preference in preferences_list %}
+
+                <div class="saved-preference">
+
+                    <h2>Saved Preference {{ loop.index }}</h2>
+
+                    <p>
+                        <strong>Preferred Location:</strong>
+                        {{ preference['preferred_location'] or 'Not specified' }}
+                    </p>
+
+                    <p>
+                        <strong>Budget:</strong>
+                        {% if preference['budget'] is not none %}
+                            MWK {{ "%.2f"|format(preference['budget']) }}
+                        {% else %}
+                            Not specified
+                        {% endif %}
+                    </p>
+
+                    <p>
+                        <strong>Preferred Activity:</strong>
+                        {{ preference['preferred_activity'] or 'Not specified' }}
+                    </p>
+
+                    <p>
+                        <strong>Trip Duration:</strong>
+                        {% if preference['duration_days'] is not none %}
+                            {{ preference['duration_days'] }} day(s)
+                        {% else %}
+                            Not specified
+                        {% endif %}
+                    </p>
+
+                    <p>
+                        <strong>Interest Category:</strong>
+                        {{ preference['interest_category'] or 'Not specified' }}
+                    </p>
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <div class="no-preferences">
+                <p>You haven't saved any travel preferences yet.</p>
+
+                <p>
+                    Set your preferences to help us find destinations
+                    that match your interests.
+                </p>
+            </div>
+
+        {% endif %}
+
+        <div class="preferences-actions">
+
+            <a href="{{ url_for('preferences') }}"
+               class="preferences-button">
+                Set Preferences
+            </a>
+
+            <a href="{{ url_for('dashboard') }}"
+               class="preferences-button secondary">
+                Back to Dashboard
+            </a>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+</body>
+</html>
