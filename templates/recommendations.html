@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recommended Destinations</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+
+<div class="container">
+    <h1>Recommended Destinations</h1>
+
+    <p>Here are the destinations that best match your travel preferences.</p>
+
+    {% if recommendations %}
+        {% for destination in recommendations %}
+            <div class="destination-card">
+                <h2>{{ destination.name }}</h2>
+
+                <p><strong>Location:</strong> {{ destination.location }}</p>
+
+                <p><strong>Description:</strong> {{ destination.description }}</p>
+
+                <p><strong>Budget:</strong> {{ destination.budget_level }}</p>
+
+                <p><strong>Activities:</strong> {{ destination.activities }}</p>
+
+                <p><strong>Recommended Duration:</strong>
+                    {{ destination.recommended_duration }} days
+                </p>
+
+                <p><strong>Match Score:</strong>
+                    {{ destination.match_score }}%
+                </p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No recommendations available yet. Please save your travel preferences first.</p>
+    {% endif %}
+
+    <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+</div>
+
+
+</body>
+</html>

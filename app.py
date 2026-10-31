@@ -78,6 +78,17 @@ def home():
 def dashboard():
     return render_template("dashboard.html")
 
+@app.route("/recommendations")
+@login_required
+def recommendations():
+
+    recommendations_list = generate_recommendations(current_user.id)
+
+    return render_template(
+        "recommendations.html",
+        recommendations=recommendations_list
+    )
+
 @app.route("/preferences", methods=["GET", "POST"])
 @login_required
 def preferences():
@@ -200,7 +211,7 @@ def register():
         finally:
             connection.close()
 
-        flash("Registration successful! You can now log in.", "success")
+        #flash("Registration successful! You can now log in.", "success")
         return redirect(url_for("login"))
 
     return render_template("register.html")
@@ -245,7 +256,7 @@ def login():
 
         login_user(logged_in_user)
   
-        flash("Login successful!", "success")
+        #flash("Login successful!", "success")
         return redirect(url_for("dashboard"))
 
     return render_template("login.html")
@@ -253,9 +264,139 @@ def login():
 @app.route("/logout")
 @login_required
 def logout():
+    
     logout_user()
     flash("You have been logged out successfully.", "success")
     return redirect(url_for("home"))
+
+def classify_budget(budget):
+    if budget < 100000:
+        return "low"
+    elif budget <= 500000:
+        return "medium"
+    else:
+        return "high"
+def calculate_activity_score(preferred_activity, destination_activities):
+    preferred = preferred_activity.lower().strip()
+    activities = destination_activities.lower()
+
+    if preferred in activities:
+        return 100
+
+    return 0
+
+def calculate_budget_score(user_budget, destination_budget):
+    user_category = classify_budget(user_budget)
+
+    if user_category == destination_budget.lower():
+        return 100
+
+    return 0
+
+def calculate_location_score(preferred_location, destination_location):
+    preferred = preferred_location.lower().strip()
+    destination = destination_location.lower().strip()
+
+    if preferred == "":
+        return 100
+
+    if preferred in destination or destination in preferred:
+        return 100
+
+    return 0
+def calculate_duration_score(user_duration, destination_duration):
+    difference = abs(user_duration - destination_duration)
+
+    if difference == 0:
+        return 100
+    elif difference == 1:
+        return 75
+    elif difference == 2:
+        return 50
+    elif difference == 3:
+        return 25
+    else:
+        return 0
+
+def calculate_total_score(activity_score, budget_score,
+                          location_score, duration_score):
+
+    total_score = (
+        (activity_score * 0.40) +
+        (budget_score * 0.25) +
+        (location_score * 0.20) +
+        (duration_score * 0.15)
+    )
+
+    return round(total_score, 2)
+
+def generate_recommendations(user_id):
+    connection = get_db_connection()
+
+    try:
+        preference = connection.execute(
+            """
+            SELECT *
+            FROM tourist_preferences
+            WHERE user_id = ?
+            ORDER BY preference_id DESC
+            LIMIT 1
+            """,
+            (user_id,)
+        ).fetchone()
+
+        if preference is None:
+            return []
+
+        destinations = connection.execute(
+            "SELECT * FROM destinations"
+        ).fetchall()
+
+        recommendations = []
+
+        for destination in destinations:
+
+            activity_score = calculate_activity_score(
+                preference["preferred_activity"],
+                destination["activities"]
+            )
+
+            budget_score = calculate_budget_score(
+                preference["budget"],
+                destination["budget_level"]
+            )
+
+            location_score = calculate_location_score(
+                preference["preferred_location"],
+                destination["location"]
+            )
+
+            duration_score = calculate_duration_score(
+                preference["duration_days"],
+                destination["recommended_duration"]
+            )
+
+            total_score = calculate_total_score(
+                activity_score,
+                budget_score,
+                location_score,
+                duration_score
+            )
+
+            destination_data = dict(destination)
+            destination_data["match_score"] = total_score
+
+            recommendations.append(destination_data)
+
+        recommendations.sort(
+            key=lambda item: item["match_score"],
+            reverse=True
+        )
+
+        return recommendations
+
+    finally:
+        connection.close()
 
 def add_malawi_destinations():
     connection = get_db_connection()
