@@ -89,6 +89,7 @@ def recommendations():
         recommendations=recommendations_list
     )
 
+
 @app.route("/preferences", methods=["GET", "POST"])
 @login_required
 def preferences():
@@ -96,76 +97,158 @@ def preferences():
         preferred_location = request.form.get("preferred_location", "").strip()
         budget_raw = request.form.get("budget", "").strip()
         preferred_activity = request.form.get("preferred_activity", "").strip()
-        duration_raw = request.form.get("duration_days", "").strip()
         interest_category = request.form.get("interest_category", "").strip()
+        duration_days = request.form.get("duration_days", "").strip()
 
         try:
             budget = float(budget_raw)
-            duration_days = int(duration_raw)
-        except ValueError:
-            flash("Please enter a valid budget and duration.", "error")
-            return render_template("preferences.html")
+            duration_days = int(duration_days)
 
-        if budget < 0 or duration_days < 1:
-            flash("Budget must be zero or more, and duration must be at least one day.", "error")
+            if budget < 0 or duration_days < 1:
+                raise ValueError
+
+        except ValueError:
+            flash("Please enter a valid budget and travel duration.", "error")
             return render_template("preferences.html")
 
         connection = get_db_connection()
+
         try:
-            connection.execute(
+            existing = connection.execute(
                 """
-                INSERT INTO tourist_preferences (
-                    user_id,
-                    preferred_location,
-                    budget,
-                    preferred_activity,
-                    duration_days,
-                    interest_category
-                )
-                VALUES (?, ?, ?, ?, ?, ?)
+                SELECT preference_id
+                FROM tourist_preferences
+                WHERE user_id = ?
                 """,
-                (
-                    current_user.id,
-                    preferred_location,
-                    budget,
-                    preferred_activity,
-                    duration_days,
-                    interest_category
+                (current_user.id,)
+            ).fetchone()
+
+            if existing:
+                connection.execute(
+                    """
+                    UPDATE tourist_preferences
+                    SET preferred_location = ?,
+                        budget = ?,
+                        preferred_activity = ?,
+                        duration_days = ?,
+                        interest_category = ?
+                    WHERE user_id = ?
+                    """,
+                    (
+                        preferred_location,
+                        budget,
+                        preferred_activity,
+                        duration_days,
+                        interest_category,
+                        current_user.id
+                    )
                 )
-            )
+
+                flash("Your preferences have been updated successfully!", "success")
+
+            else:
+                connection.execute(
+                    """
+                    INSERT INTO tourist_preferences (
+                        user_id,
+                        preferred_location,
+                        budget,
+                        preferred_activity,
+                        duration_days,
+                        interest_category
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        current_user.id,
+                        preferred_location,
+                        budget,
+                        preferred_activity,
+                        duration_days,
+                        interest_category
+                    )
+                )
+
+                flash("Your preferences have been saved successfully!", "success")
+
             connection.commit()
+
         finally:
             connection.close()
 
-        flash("Your travel preferences have been saved successfully!", "success")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("my_preferences"))
 
-    return render_template("preferences.html")
+    connection = get_db_connection()
+
+    try:
+        saved_preferences = connection.execute(
+        """
+        SELECT *
+        FROM tourist_preferences
+        WHERE user_id = ?
+        ORDER BY preference_id DESC
+        LIMIT 1
+        """,
+        (current_user.id,)
+    ).fetchone()
+
+    finally:
+        connection.close()
+
+    return render_template(
+    "preferences.html",
+    preferences=saved_preferences
+)
+
 
 @app.route("/my-preferences")
 @login_required
 def my_preferences():
     connection = get_db_connection()
 
-
     try:
         preferences_list = connection.execute(
-        """
-        SELECT preferred_location, budget, preferred_activity,
-               duration_days, interest_category
-        FROM tourist_preferences
-        WHERE user_id = ?
-        ORDER BY preference_id DESC
-        """,
-        (current_user.id,)
-    ).fetchall()
+            """
+            SELECT preference_id, preferred_location, budget,
+                   preferred_activity, duration_days, interest_category
+            FROM tourist_preferences
+            WHERE user_id = ?
+            ORDER BY preference_id DESC
+            LIMIT 1
+            """,
+            (current_user.id,)
+        ).fetchall()
+
     finally:
         connection.close()
 
     return render_template(
         "my_preferences.html",
         preferences_list=preferences_list
-)
+    )
+    
+@app.route("/delete-preferences", methods=["POST"])
+@login_required
+def delete_preferences():
+    connection = get_db_connection()
+
+    try:
+        connection.execute(
+            """
+            DELETE FROM tourist_preferences
+            WHERE user_id = ?
+            """,
+            (current_user.id,)
+        )
+
+        connection.commit()
+
+        flash("Your preferences have been deleted successfully!", "success")
+
+    finally:
+        connection.close()
+
+    return redirect(url_for("my_preferences"))    
                
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -266,7 +349,7 @@ def login():
 def logout():
     
     logout_user()
-    flash("You have been logged out successfully.", "success")
+    
     return redirect(url_for("home"))
 
 def classify_budget(budget):
@@ -304,28 +387,16 @@ def calculate_location_score(preferred_location, destination_location):
         return 100
 
     return 0
-def calculate_duration_score(user_duration, destination_duration):
-    difference = abs(user_duration - destination_duration)
 
-    if difference == 0:
-        return 100
-    elif difference == 1:
-        return 75
-    elif difference == 2:
-        return 50
-    elif difference == 3:
-        return 25
-    else:
-        return 0
 
 def calculate_total_score(activity_score, budget_score,
-                          location_score, duration_score):
+                          location_score):
 
     total_score = (
-        (activity_score * 0.40) +
-        (budget_score * 0.25) +
-        (location_score * 0.20) +
-        (duration_score * 0.15)
+        (activity_score * 0.45) +
+        (budget_score * 0.30) +
+        (location_score * 0.25) 
+        
     )
 
     return round(total_score, 2)
@@ -371,16 +442,13 @@ def generate_recommendations(user_id):
                 destination["location"]
             )
 
-            duration_score = calculate_duration_score(
-                preference["duration_days"],
-                destination["recommended_duration"]
-            )
+           
 
             total_score = calculate_total_score(
                 activity_score,
                 budget_score,
                 location_score,
-                duration_score
+                
             )
 
             destination_data = dict(destination)
@@ -408,7 +476,7 @@ def add_malawi_destinations():
             "A beautiful freshwater lake known for its clear water, beaches, and colourful fish.",
             "medium",
             "Swimming, Snorkelling, Kayaking, Boat Trips,Scuba diving",
-            3
+            
         ),
         (
             "Liwonde National Park",
@@ -416,7 +484,7 @@ def add_malawi_destinations():
             "A wildlife destination known for elephants, hippos, crocodiles, and safari experiences.",
             "high",
             "Wildlife Safari, Bird Watching, Boat Safari,Helicopter rides",
-            2
+            
         ),
         (
             "Mount Mulanje",
@@ -424,7 +492,7 @@ def add_malawi_destinations():
             "A spectacular mountain destination offering hiking trails, waterfalls, and scenic landscapes.",
             "medium",
             "Hiking, Mountain Climbing, Nature Walks, Photography",
-            3
+            
         ),
         (
             "Nyika National Park",
@@ -432,7 +500,7 @@ def add_malawi_destinations():
             "A highland national park featuring rolling grasslands, wildlife, and beautiful scenery.",
             "high",
             "Wildlife Viewing, Hiking, Bird Watching, Photography",
-            3
+            
         ),
         (
             "Lake Chilwa",
@@ -440,39 +508,81 @@ def add_malawi_destinations():
             "A shallow lake and wetland area known for birdlife, fishing communities, and natural scenery.",
             "low",
             "Bird Watching, Photography, Cultural Experiences",
-            1
+            
         ),
         (
             "Majete Wildlife reserve",
             "Southern Region",
-            "Majete now hosts more than 4000 animals, including the Big 5! Elephants, lion, leopard, black rhinos, buffalos, elands, nyalas, zebras and hippos can be seen in the reserve. ",
+            "Majete  hosts more than 4000 animals, including the Big 5! . ",
             "low",
-            "Game drive,Walking Safari,Boat Safari",
-            3
+            "Wildlife viewing,Game drive,Walking Safari,Boat Safari",
+            
         ),
         (
             "Kasungu National Park",
             "Southern Region",
-            "The Park has over 300 species of birds which include a variety of waterbirds such as the palearctic migrant White Stork. and woodland birds such as the Shelley’s Sunbird",
+            "The Park has over 300 species of birds which include a variety of waterbirds.",
             "medium",
-            "Sport Fishing,Bird Watching,historical sites visits, Game Viewing",
-            1
+            "Sport Fishing,Wildlife viewing,Bird Watching,historical sites visits, Wildlife Safari",
+            
         ),
         (
             "Nkhotankhota Wildlife Reserve",
             "Northern Region",
             "Nkhotakota is a rugged terrain crossed by many rivers tumbling down the edge of the escarpment as they make their way to the lake",
             "medium",
-            "Fishing,Walking Safari,Canoeing,Bird Watching",
-            1
+            "Wildlife Safari,Fishing,Walking Safari,Canoeing,Bird Watching",
+            
         ),
         (
             "Vwaza Wildlife Reserve",
             "Northern Region",
             "It offers four of the five big games namely Elephant, Buffalo, Lion, Leopard and animal species large numbers of hippopotamus, and many others.",
             "low",
-            "Game Viewing,Janda Hill,Bird Watching",
-            1
+            "Wildlife Viewing,Janda Hill,Bird Watching",
+            
+        ),
+        (
+            "Zomba Plateu",
+            "Northern Region",
+            "Panoramic vantage points offering sweeping views across the Shire Valley, Lake Chilwa, and Mulanje Massif on clear days",
+            "medium",
+            "Horse Riding,mountain hiking"
+        ),
+        (
+            "Fort Matete Site",
+            "Northern Region",
+            "Fort Matete is a historical defensive post located in Nkhata Bay District along Lake Malawi ,marking the colonial and regional anti-slave-trade military operations of the late 19th century",
+            "low",
+            "Historical Sightseeing, Bird Watching, Hiking Trails, Cultural Village Tours, Lake Photography"
+        ),
+        (
+          "Malape Pillars",
+          "Southern Region",
+          "The Malape Pillars are a striking geological feature at the foot of the Chikala Hills, consisting of towering, labyrinthine sandstone columns and spires sculpted over millions of years by differential wind and water erosion",
+          "low",
+          "Hiking, Biking, Bird Watching, Geological Photography, Cultural Exploration"  
+        ),
+        (
+          "Fort Mangochi",
+          "Southern Region",
+          "Fort Mangochi is a highly preserved late-19th-century historical ruin situated on the high plateau of Mangochi Mountain, originally built as a defensive stronghold by the Yao people under Chief Jalasi before being captured and reinforced by British colonial forces to deter the regional slave trade",
+          "low",
+          "Historical Exploration, Mountain Trekking, Scenic Photography, Bird Watching, Cultural Heritage Tours"
+        ),
+        (
+          "Zoa Falls",
+          "Southern Region",
+          "Zoa Falls is a breathtaking, rocky waterfall hidden along the Ruo River in Thyolo District near the Mozambique border, featuring dramatic cascades, a seasonal summer sandbank pool, and historical remnants left by pre-independence colonial settlers",
+          "low",
+          "Waterfall Viewing, Nature Hiking, Wilderness Camping, Scenic Photography, Historical Sightseeing"
+        ),
+        (
+          "Mpoto Lagoon (Phalombe)",
+          "Southern Region",
+          "Mpoto Lagoon is an off-the-beaten-path, raw water body in Phalombe District that is fed by rivers from the Mulanje Massif and flows into the Lake Chilwa basin, offering an undisturbed wilderness experience bordering a traditional fishing village",
+          "low",
+          "Canoeing, Wilderness Camping, Fishing, Bird Watching, Scenic Photography"  
         )
             
     ]
@@ -487,13 +597,31 @@ def add_malawi_destinations():
             connection.execute("""
                 INSERT INTO destinations (
                     name, location, description,
-                    budget_level, activities, recommended_duration
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    budget_level, activities
+                ) VALUES (?, ?, ?, ?, ?)
             """, destination)
 
+        else:
+                
+            sql = """
+                UPDATE destinations
+                SET description = ?,
+                    budget_level = ?,
+                    activities = ?
+                WHERE name = ? AND location = ?
+            """
+
+            values = (
+                destination[2],
+                destination[3],
+                destination[4],
+                destination[0],
+                destination[1]
+            )
+
+        connection.execute(sql, values)
     connection.commit()
     connection.close()
-
  
 
 @app.route("/check-destinations")

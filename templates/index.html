@@ -1,137 +1,368 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Tourism Personalized Recommendation System </title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
+<title>Explore Malawi | Discover Your Next Adventure</title>
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}">
+
+
 </head>
 
-<body>
+<body class="homepage">
 
-    <!-- Navigation Bar -->
-    <header class="navbar">
 
-        <a href="{{ url_for('home') }}" class="logo">
-            Explore Malawi
+<!-- NAVIGATION -->
+<header class="navbar">
+
+    <a href="{{ url_for('home') }}" class="logo">
+        Explore<span>Malawi.</span>
+    </a>
+
+    <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="#about">About</a>
+        <a href="#attractions">Attractions</a>
+        <a href="#experiences">Experiences</a>
+        <a href="{{ url_for('login') }}">Login</a>
+
+        <a href="{{ url_for('register') }}" class="nav-button">
+            Get Started
         </a>
+    </nav>
 
-        <nav>
-            <a href="{{ url_for('home') }}">Home</a>
-            <a href="#about">About</a>
-        </nav>
-
-    </header>
+</header>
 
 
-    <!-- Homepage Hero Section -->
-    <main>
+<main>
 
-        <section class="hero">
+    <!-- HERO SECTION -->
+    <section class="hero">
+    <div class="hero-slideshow">
+        <div class="hero-slide slide-1"></div>
+        <div class="hero-slide slide-2"></div>
+        <div class="hero-slide slide-3"></div>
+        <div class="hero-slide slide-4"></div>
+        <div class="hero-slide slide-5"></div>
+        <div class="hero-slide slide-6"></div>
+        <div class="hero-slide slide-7"></div>
+        <div class="hero-slide slide-8"></div>
+    </div>
 
-            <div class="hero-content">
+        <div class="hero-content">
 
-                <p class="eyebrow">
-                    DISCOVER THE WARM HEART OF AFRICA
-                </p>
+            <p class="eyebrow">
+                DISCOVER THE WARM HEART OF AFRICA
+            </p>
 
-                
-                
-                
-                <h1>
-                    Tourism Personalized Recommendation System
-                </h1>
+            <h1>
+                Tourism Personalized 
+                <span>Recommendation System</span>
+            </h1>
 
-                
+            <p class="hero-description">
+                From breathtaking landscapes to unforgettable
+                adventures, discover destinations that match
+                your interests, budget and travel preferences.
+            </p>
 
-                
-                
-                <p class="hero-description">
-                    Discover the beauty of Malawi through personalized
-                    tourism recommendations. Find destinations that
-                    match your interests, budget, preferred activities,
-                    and travel duration. Let our intelligent
-                    recommendation system help you plan your next
-                    adventure.
-                </p>
+            <div class="hero-buttons">
 
-                <!-- Homepage Buttons -->
-                <div class="hero-buttons">
-                    <a href="{{ url_for('register') }}"
-                       class="primary-button">
-                        Get Started
-                    </a>
+                <a href="{{ url_for('register') }}"
+                   class="primary-button">
+                    Start Exploring →
+                </a>
 
-                    <a href="{{ url_for('login') }}"
-                       class="secondary-button">
-                        Login
-                    </a>
-                </div>
+                <a href="#attractions"
+                   class="secondary-button">
+                    Discover Attractions
+                </a>
 
             </div>
 
-        </section>
+        </div>
+
+        <div class="hero-scroll">
+            EXPLORE MALAWI ↓
+        </div>
+
+    </section>
 
 
-        <!-- About Section -->
-        <section class="about" id="about">
+    <!-- ABOUT MALAWI -->
+    <section class="about" id="about">
 
-            <p class="eyebrow">ABOUT US</p>
+        <div class="about-image">
+            <img src="{{ url_for('static', filename='images/lake-malawi.jpg') }}"
+                 alt="Beautiful Lake Malawi">
+        </div>
+
+        <div class="about-content">
+
+            <p class="eyebrow">THE WARM HEART OF AFRICA</p>
 
             <h2>Discover Malawi Your Way</h2>
 
             <p>
-                This system helps tourists discover suitable destinations.
-                
-                It considers individual travel preferences, including
-                interests, budget, activities, and duration. A
-                conversational AI  will  help users refine
-                their preferences and explore relevant destinations.
+                Malawi is home to beautiful lakes, magnificent
+                mountains, diverse wildlife and rich cultural
+                experiences.
             </p>
 
-            <div class="feature-container">
+            <p>
+                Our tourism recommendation system helps you
+                discover destinations based on your interests,
+                preferred activities, budget and travel plans.
+            </p>
 
-                <article class="feature-card">
-                    <h3>Personalized Recommendations</h3>
-                    <p>
-                        Discover destinations based on your interests
-                        and preferred activities.
-                    </p>
-                </article>
+            <a href="{{ url_for('register') }}"
+               class="text-link">
+                Begin Your Journey →
+            </a>
 
-                <article class="feature-card">
-                    <h3>Budget-Friendly Travel</h3>
-                    <p>
-                        Find tourism destinations suited to your
-                        available budget.
-                    </p>
-                </article>
+        </div>
 
-                <article class="feature-card">
-                    <h3>Conversational AI</h3>
-                    <p>
-                        Refine your travel preferences through a
-                        conversational tourism assistant.
-                    </p>
-                </article>
-
-            </div>
-
-        </section>
-
-    </main>
+    </section>
 
 
-    <!-- Footer -->
-    <footer class="footer">
+    <!-- POPULAR ATTRACTIONS -->
+    <section class="attractions" id="attractions">
+
+        <div class="section-heading">
+
+            <p class="eyebrow">EXPLORE THE EXTRAORDINARY</p>
+
+            <h2>Popular Tourist Attractions</h2>
+
+            <p>
+                Discover some of Malawi's beautiful places
+                and unforgettable destinations.
+            </p>
+
+        </div>
+
+
+        <div class="attraction-container">
+
+            <article class="attraction-card">
+
+                <img src="{{ url_for('static', filename='images/lake-malawi.jpg') }}"
+                     alt="Lake Malawi">
+
+                <div class="attraction-overlay">
+                    <h3>Lake Malawi</h3>
+                    <p>Beautiful beaches and crystal-clear waters.</p>
+                </div>
+
+            </article>
+
+
+            <article class="attraction-card">
+
+                <img src="{{ url_for('static', filename='images/mount-mulanje.jpg') }}"
+                     alt="Mount Mulanje">
+
+                <div class="attraction-overlay">
+                    <h3>Mount Mulanje</h3>
+                    <p>Magnificent mountains and hiking adventures.</p>
+                </div>
+
+            </article>
+
+
+            <article class="attraction-card">
+
+                <img src="{{ url_for('static', filename='images/malawi-wildlife.jpg') }}"
+                     alt="Malawi wildlife">
+
+                <div class="attraction-overlay">
+                    <h3>Liwonde National Park</h3>
+                    <p>Experience Malawi's fascinating wildlife.</p>
+                </div>
+
+            </article>
+
+
+            <article class="attraction-card">
+
+                <img src="{{ url_for('static', filename='images/gallery-waterfall.jpg') }}"
+                     alt="Waterfall scenery">
+
+                <div class="attraction-overlay">
+                    <h3>Natural Attractions</h3>
+                    <p>Explore Malawi's beautiful natural scenery.</p>
+                </div>
+
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- TOURISM EXPERIENCES -->
+    <section class="experiences" id="experiences">
+
+        <div class="section-heading">
+
+            <p class="eyebrow">MAKE EVERY MOMENT COUNT</p>
+
+            <h2>Experiences to Remember</h2>
+
+            <p>
+                Whatever your interests, Malawi has something
+                special waiting for you.
+            </p>
+
+        </div>
+
+
+        <div class="experience-container">
+
+            <article class="experience-card">
+                <div class="experience-icon">🐘</div>
+                <h3>Wildlife & Safari</h3>
+                <p>Discover wildlife and explore nature reserves.</p>
+            </article>
+
+            <article class="experience-card">
+                <div class="experience-icon">⛰️</div>
+                <h3>Mountain Adventures</h3>
+                <p>Enjoy hiking and breathtaking mountain views.</p>
+            </article>
+
+            <article class="experience-card">
+                <div class="experience-icon">🌊</div>
+                <h3>Lake Adventures</h3>
+                <p>Experience beautiful beaches and water activities.</p>
+            </article>
+
+            <article class="experience-card">
+                <div class="experience-icon">🎭</div>
+                <h3>Culture & Heritage</h3>
+                <p>Discover Malawi's traditions and cultural attractions.</p>
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- PERSONALIZED RECOMMENDATIONS -->
+    <section class="personalized-section">
+
+        <div class="personalized-content">
+
+            <p class="eyebrow">TRAVEL MADE PERSONAL</p>
+
+            <h2>Find Destinations That Match You</h2>
+
+            <p>
+                Tell us what you enjoy, your preferred activities
+                and your travel budget. Our content-based
+                recommendation model compares your preferences
+                with available destinations and ranks the
+                results according to their matching scores.
+            </p>
+
+            <a href="{{ url_for('register') }}"
+               class="primary-button">
+                Get Your Recommendations →
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- WHY CHOOSE US -->
+    <section class="why-choose">
+
+        <div class="section-heading">
+
+            <p class="eyebrow">WHY EXPLORE WITH US?</p>
+
+            <h2>A Simpler Way to Discover Malawi</h2>
+
+        </div>
+
+
+        <div class="feature-container">
+
+            <article class="feature-card">
+                <h3>Personalized Travel</h3>
+                <p>
+                    Recommendations based on your individual
+                    travel interests and preferences.
+                </p>
+            </article>
+
+            <article class="feature-card">
+                <h3>Budget Consideration</h3>
+                <p>
+                    Discover destinations that suit your
+                    available travel budget.
+                </p>
+            </article>
+
+            <article class="feature-card">
+                <h3>Conversational Assistance</h3>
+                <p>
+                    A planned conversational AI feature will
+                    help users explore destinations naturally.
+                </p>
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- FINAL CALL TO ACTION -->
+    <section class="homepage-cta">
+
+        <p class="eyebrow">YOUR NEXT ADVENTURE STARTS HERE</p>
+
+        <h2>Malawi is Waiting for You.</h2>
+
         <p>
-            &copy; 2026 Tourism Personalized Recommendation System
-            | Malawi
+            Start discovering destinations that suit your
+            travel interests and preferences.
         </p>
-    </footer>
+
+        <a href="{{ url_for('register') }}"
+           class="primary-button">
+            Create Your Account →
+        </a>
+
+    </section>
+
+</main>
+
+
+<!-- FOOTER -->
+<footer class="footer">
+
+    <h2>Explore<span>Malawi.</span></h2>
+
+    <p>
+        Discover beautiful destinations.
+        Experience the Warm Heart of Africa.
+    </p>
+
+    <p>
+        &copy; 2026 Explore Malawi.
+        Tourism Personalized Recommendation System.
+    </p>
+
+</footer>
+
 
 </body>
 </html>

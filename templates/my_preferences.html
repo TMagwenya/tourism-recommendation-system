@@ -1,22 +1,17 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-```
-<title>My Travel Preferences | Explore Malawi</title>
+    <title>My Travel Preferences | Explore Malawi</title>
 
-<link rel="stylesheet"
-      href="{{ url_for('static', filename='css/style.css') }}">
-
-
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body class="my-preferences-page">
-
 
 <main class="preferences-container">
 
@@ -25,8 +20,16 @@
         <h1>My Travel Preferences</h1>
 
         <p class="preferences-intro">
-            Review the travel preferences you have saved.
+            Review and manage your saved travel preferences.
         </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endwith %}
 
         {% if preferences_list %}
 
@@ -34,7 +37,7 @@
 
                 <div class="saved-preference">
 
-                    <h2>Saved Preference {{ loop.index }}</h2>
+                    <h2>Your Saved Preference</h2>
 
                     <p>
                         <strong>Preferred Location:</strong>
@@ -43,11 +46,7 @@
 
                     <p>
                         <strong>Budget:</strong>
-                        {% if preference['budget'] is not none %}
-                            MWK {{ "%.2f"|format(preference['budget']) }}
-                        {% else %}
-                            Not specified
-                        {% endif %}
+                        MWK {{ "%.2f"|format(preference['budget']) }}
                     </p>
 
                     <p>
@@ -57,17 +56,33 @@
 
                     <p>
                         <strong>Trip Duration:</strong>
-                        {% if preference['duration_days'] is not none %}
-                            {{ preference['duration_days'] }} day(s)
-                        {% else %}
-                            Not specified
-                        {% endif %}
+                        {{ preference['duration_days'] }} day(s)
                     </p>
 
                     <p>
                         <strong>Interest Category:</strong>
                         {{ preference['interest_category'] or 'Not specified' }}
                     </p>
+
+                    <div class="preferences-actions">
+
+                        <a href="{{ url_for('preferences') }}"
+                           class="preferences-button">
+                            Edit Preferences
+                        </a>
+
+                        <form method="POST"
+                              action="{{ url_for('delete_preferences') }}"
+                              onsubmit="return confirmDelete();">
+
+                            <button type="submit"
+                                    class="preferences-button delete-button">
+                                Delete Preferences
+                            </button>
+
+                        </form>
+
+                    </div>
 
                 </div>
 
@@ -84,26 +99,31 @@
                 </p>
             </div>
 
+            <div class="preferences-actions">
+                <a href="{{ url_for('preferences') }}"
+                   class="preferences-button">
+                    Set Preferences
+                </a>
+            </div>
+
         {% endif %}
 
-        <div class="preferences-actions">
-
-            <a href="{{ url_for('preferences') }}"
-               class="preferences-button">
-                Set Preferences
-            </a>
-
-            <a href="{{ url_for('dashboard') }}"
-               class="preferences-button secondary">
-                Back to Dashboard
-            </a>
-
-        </div>
+        <a href="{{ url_for('dashboard') }}"
+           class="preferences-button secondary">
+            Back to Dashboard
+        </a>
 
     </section>
 
 </main>
 
+<script>
+    function confirmDelete() {
+        return confirm(
+            "Are you sure you want to delete your saved travel preferences?"
+        );
+    }
+</script>
 
 </body>
 </html>

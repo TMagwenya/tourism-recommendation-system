@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
     location TEXT NOT NULL,
     description TEXT,
     budget_level TEXT,
-    activities TEXT,
-    recommended_duration INTEGER
+    activities TEXT
+    
     );
 
 

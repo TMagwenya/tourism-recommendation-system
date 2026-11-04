@@ -1,134 +1,308 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>User Dashboard | Explore Malawi</title>
+```
+<title>Dashboard | Explore Malawi</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}">
+```
+
 </head>
 
-<body>
+<body class="dashboard-page">
 
-    <!-- Navigation Bar -->
-    <header class="navbar">
+```
+<!-- Navigation -->
+<header class="navbar">
 
-        <a href="{{ url_for('dashboard') }}" class="logo">
-            Explore Malawi
+    <a href="{{ url_for('dashboard') }}" class="logo">
+        ⛰ Explore<span>Malawi.</span>
+    </a>
+
+    <nav>
+        <a href="{{ url_for('dashboard') }}" class="active">Dashboard</a>
+        <a href="{{ url_for('home') }}">Home</a>
+
+        <a href="{{ url_for('logout') }}" class="nav-button">
+            Logout
         </a>
+    </nav>
 
-        <nav>
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('home') }}">Home</a>
-
-            <a href="{{ url_for('logout') }}" class="nav-button">
-                Logout
-            </a>
-        </nav>
-
-    </header>
+</header>
 
 
-    <!-- Dashboard Welcome Section -->
-    <main>
+<main>
 
-        <section class="dashboard-hero">
+    <!-- HERO SECTION -->
+    <section class="dashboard-hero">
 
-            <p class="eyebrow">YOUR PERSONAL TRAVEL SPACE</p>
+        <div class="hero-overlay"></div>
 
-            <h1>Explore Malawi Your Way</h1>
+        <div class="dashboard-hero-content">
 
-            <p>
-                Welcome, {{ current_user.username }}!
-                Discover destinations that match your interests,
-                budget, and travel preferences.
+            <p class="eyebrow">
+                DISCOVER THE WARM HEART OF AFRICA
             </p>
 
-        </section>
+            <h1>
+                Explore Malawi,<br>
+                <span>Your Way</span>
+            </h1>
+
+            <p class="hero-description">
+                Welcome, {{ current_user.username }}!
+
+                Unforgettable experiences. Breathtaking places.
+                A journey tailored around your travel interests.
+            </p>
+
+            <a href="{{ url_for('preferences') }}"
+               class="hero-button">
+                Explore Destinations →
+            </a>
+
+        </div>
 
 
-        <!-- Dashboard Feature Cards -->
-        <section class="dashboard-content">
+        <!-- Three Oval Photographs -->
+        <div class="hero-oval-gallery">
 
-            <h2>What Would You Like to Do?</h2>
+            <div class="oval-image oval-one">
+                <img src="{{ url_for('static', filename='images/lake-malawi.jpg') }}"
+                     alt="Beautiful Lake Malawi">
+            </div>
 
-            <div class="feature-container">
+            <div class="oval-image oval-two">
+                <img src="{{ url_for('static', filename='images/mount-mulanje.jpg') }}"
+                     alt="Mount Mulanje">
+            </div>
 
-                <article class="feature-card">
-                    <h3>Find Destinations</h3>
+            <div class="oval-image oval-three">
+                <img src="{{ url_for('static', filename='images/malawi-wildlife.jpg') }}"
+                     alt="Malawi wildlife">
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- FEATURE SECTION -->
+    <section class="dashboard-content">
+
+        <div class="section-heading">
+
+            <p class="eyebrow">YOUR TRAVEL EXPERIENCE</p>
+
+            <h2>Where Would You Like to Begin?</h2>
+
+        </div>
+
+
+        <div class="feature-container">
+
+
+            <!-- Destinations -->
+            <article class="feature-card">
+
+                <div class="feature-image">
+                    <img src="{{ url_for('static', filename='images/card-destinations.jpg') }}"
+                         alt="Malawi tourism destinations">
+                </div>
+
+                <div class="feature-details">
+
+                    <div class="feature-icon">📍</div>
+
+                    <h3>Explore Destinations</h3>
 
                     <p>
-                        Explore tourism destinations across Malawi
-                        and discover places worth visiting.
+                        Discover beautiful places across Malawi.
                     </p>
 
                     <span class="dashboard-status">
                         Coming Soon
                     </span>
-                </article>
+
+                </div>
+
+            </article>
 
 
-                 <article class="feature-card">
-                   <h3>My Travel Preferences</h3>
+            <!-- Preferences -->
+            <article class="feature-card">
 
+                <div class="feature-image">
+                    <img src="{{ url_for('static', filename='images/card-preferences.jpg') }}"
+                         alt="Travel planning">
+                </div>
+
+                <div class="feature-details">
+
+                    <div class="feature-icon">✈️</div>
+
+                    <h3>Travel Preferences</h3>
 
                     <p>
-                      Tell us about your budget, interests,
-                      preferred activities, and trip duration.
+                        Set your travel preferences and interests.
                     </p>
 
-                    <a href="{{ url_for('preferences') }}" class="primary-button">Set Preferences</a>
-                    <a href="{{ url_for('my_preferences') }}" class="primary-button">
-                      View My Preferences
+                    <a href="{{ url_for('preferences') }}"
+                       class="card-link">
+                        Plan Your Trip →
                     </a>
 
-                </article>
+                </div>
+
+            </article>
 
 
+            <!-- Recommendations -->
+            <article class="feature-card">
 
-                <article class="feature-card">
-                   <h3>My Recommendations</h3>
+                <div class="feature-image">
+                    <img src="{{ url_for('static', filename='images/card-recommendations.jpg') }}"
+                         alt="Malawi mountain landscape">
+                </div>
 
-                     <p>
-                       Find destinations ranked according to
-                       your personal travel preferences.
-                     </p>
+                <div class="feature-details">
 
-                     <a href="{{ url_for('recommendations') }}" class="primary-button">
-                      View My Recommendations
+                    <div class="feature-icon">⭐</div>
+
+                    <h3>Personalized Recommendations</h3>
+
+                    <p>
+                        Find destinations that match your interests.
+                    </p>
+
+                    <a href="{{ url_for('recommendations') }}"
+                       class="card-link">
+                        View Recommendations →
                     </a>
-                </article>
+
+                </div>
+
+            </article>
 
 
-                <article class="feature-card">
+            <!-- Travel Assistant -->
+            <article class="feature-card">
+
+                <div class="feature-image">
+                    <img src="{{ url_for('static', filename='images/card-assistant.jpg') }}"
+                         alt="Travel assistance">
+                </div>
+
+                <div class="feature-details">
+
+                    <div class="feature-icon">💬</div>
+
                     <h3>Travel Assistant</h3>
 
                     <p>
-                        Get help exploring destinations and refining
-                        your travel choices through conversation.
+                        Get help with your travel plans.
                     </p>
 
                     <span class="dashboard-status">
                         Coming Soon
                     </span>
-                </article>
 
+                </div>
+
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- MALAWI GALLERY SECTION -->
+    <section class="malawi-gallery-section">
+
+        <div class="gallery-heading">
+
+            <p class="eyebrow">MALAWI AWAITS</p>
+
+            <h2>
+                Discover the Beauty of Malawi
+            </h2>
+
+            <p>
+                From beautiful beaches to majestic mountains,
+                experience a destination like no other.
+            </p>
+
+        </div>
+
+
+        <!-- Overlapping Postcard Photographs -->
+        <div class="postcard-gallery">
+
+            <div class="postcard postcard-one">
+                <img src="{{ url_for('static', filename='images/gallery-beach.jpg') }}"
+                     alt="Malawi lakeshore">
             </div>
 
-        </section>
+            <div class="postcard postcard-two">
+                <img src="{{ url_for('static', filename='images/gallery-waterfall.jpg') }}"
+                     alt="Waterfall in Malawi">
+            </div>
 
-    </main>
+            <div class="postcard postcard-three">
+                <img src="{{ url_for('static', filename='images/gallery-lake.jpg') }}"
+                     alt="Lake Malawi landscape">
+            </div>
+
+            <div class="postcard postcard-four">
+                <img src="{{ url_for('static', filename='images/gallery-culture.jpg') }}"
+                     alt="Malawi cultural attraction">
+            </div>
+
+        </div>
+
+    </section>
 
 
-    <!-- Footer -->
-    <footer class="footer">
-        <p>
-            &copy; 2026 Tourism Personalized Recommendation System
-            | Malawi
-        </p>
-    </footer>
+    <!-- DISCOVER MALAWI SECTION -->
+    <section class="discover-section">
+
+        <div class="discover-content">
+
+            <p class="eyebrow">
+                EXPERIENCE SOMETHING BEAUTIFUL
+            </p>
+
+            <h2>Malawi is Waiting to Be Explored.</h2>
+
+            <p>
+                From the beautiful shores of Lake Malawi to the
+                mountains, wildlife reserves and cultural attractions,
+                discover experiences that make every journey special.
+            </p>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- FOOTER -->
+<footer class="footer">
+
+    <p>
+        &copy; 2026 Explore Malawi.
+        Tourism Personalized Recommendation System.
+    </p>
+
+</footer>
+```
 
 </body>
 </html>

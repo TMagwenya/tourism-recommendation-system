@@ -53,11 +53,22 @@
                             required>
 
                         <option value="">Choose a location</option>
-                        <option value="Northern Malawi">Northern Malawi</option>
-                        <option value="Central Malawi">Central Malawi</option>
-                        <option value="Southern Malawi">Southern Malawi</option>
-                        <option value="Anywhere in Malawi">Anywhere in Malawi</option>
-
+                        <option value="Northern Malawi"
+    {% if preferences and preferences['preferred_location'] == 'Northern Malawi' %}selected{% endif %}>
+    Northern Malawi
+</option>
+                        <option value="Central Malawi"
+    {% if preferences and preferences['preferred_location'] == 'Central Malawi' %}selected{% endif %}>
+    Central Malawi
+</option>
+                        <option value="Southern Malawi"
+    {% if preferences and preferences['preferred_location'] == 'Southern Malawi' %}selected{% endif %}>
+    Southern Malawi
+</option>
+                        <option value="Anywhere in Malawi"
+    {% if preferences and preferences['preferred_location'] == 'Anywhere in Malawi' %}selected{% endif %}>
+    Anywhere in Malawi
+</option>
                     </select>
                 </div>
 
@@ -67,13 +78,13 @@
                         Travel Budget (MWK)
                     </label>
 
-                    <input type="number"
-                           id="budget"
-                           name="budget"
-                           min="0"
-                           step="1"
-                           placeholder="Enter your budget"
-                           required>
+                   <input type="number"
+       id="budget"
+       name="budget"
+       placeholder="Enter your budget"
+       min="0"
+       value="{{ preferences['budget'] if preferences else '' }}"
+       required>
                 </div>
 
                 <!-- Preferred Activity -->
@@ -85,34 +96,57 @@
                     <select id="preferred_activity"
                             name="preferred_activity"
                             required>
-
                         <option value="">Choose an activity</option>
-                        <option value="Wildlife">Wildlife viewing</option>
-                        <option value="Hiking">Hiking and mountain climbing</option>
-                        <option value="Water activities">Water activities</option>
-                        <option value="Culture">Cultural experiences</option>
-                        <option value="Camping">Camping</option>
-                        <option value="Relaxation">Relaxation</option>
-                        <option value="Sightseeing">Sightseeing</option>
+
+<option value="Wildlife"
+    {% if preferences and preferences['preferred_activity'] == 'Wildlife' %}selected{% endif %}>
+    Wildlife viewing
+</option>
+
+<option value="Hiking"
+    {% if preferences and preferences['preferred_activity'] == 'Hiking' %}selected{% endif %}>
+    Hiking and mountain climbing
+</option>
+
+<option value="Water activities"
+    {% if preferences and preferences['preferred_activity'] == 'Water activities' %}selected{% endif %}>
+    Water activities
+</option>
+
+<option value="Culture"
+    {% if preferences and preferences['preferred_activity'] == 'Culture' %}selected{% endif %}>
+    Cultural experiences
+</option>
+
+<option value="Camping"
+    {% if preferences and preferences['preferred_activity'] == 'Camping' %}selected{% endif %}>
+    Camping
+</option>
+
+<option value="Relaxation"
+    {% if preferences and preferences['preferred_activity'] == 'Relaxation' %}selected{% endif %}>
+    Relaxation
+</option>
+
+<option value="Sightseeing"
+    {% if preferences and preferences['preferred_activity'] == 'Sightseeing' %}selected{% endif %}>
+    Sightseeing
+</option>
 
                     </select>
+                    <label for="duration_days">Preferred Travel Duration (Days):</label>
+                       <input
+    type="number"
+    id="duration_days"
+    name="duration_days"
+    min="1"
+    value="{{ preferences['duration_days'] if preferences else '' }}"
+    placeholder="Enter number of days"
+    required
+>
                 </div>
 
-                <!-- Duration -->
-                <div class="form-group">
-                    <label for="duration_days">
-                        Trip Duration (Days)
-                    </label>
-
-                    <input type="number"
-                           id="duration_days"
-                           name="duration_days"
-                           min="1"
-                           max="365"
-                           placeholder="Enter duration days"
-                           required>
-                </div>
-
+                
                 <!-- Interest Category -->
                 <div class="form-group">
                     <label for="interest_category">
@@ -123,16 +157,44 @@
                             name="interest_category"
                             required>
 
-                        <option value="">Choose your main interest</option>
-                        <option value="Nature">Nature</option>
-                        <option value="Adventure">Adventure</option>
-                        <option value="Wildlife">Wildlife</option>
-                        <option value="Culture">Culture and heritage</option>
-                        <option value="Beaches">Beaches and lake tourism</option>
-                        <option value="Relaxation">Relaxation</option>
+                       <option value="">Choose your main interest</option>
+
+<option value="Nature"
+    {% if preferences and preferences['interest_category'] == 'Nature' %}selected{% endif %}>
+    Nature
+</option>
+
+<option value="Adventure"
+    {% if preferences and preferences['interest_category'] == 'Adventure' %}selected{% endif %}>
+    Adventure
+</option>
+
+<option value="Wildlife"
+    {% if preferences and preferences['interest_category'] == 'Wildlife' %}selected{% endif %}>
+    Wildlife
+</option>
+
+<option value="Culture"
+    {% if preferences and preferences['interest_category'] == 'Culture' %}selected{% endif %}>
+    Culture and heritage
+</option>
+
+<option value="Beaches"
+    {% if preferences and preferences['interest_category'] == 'Beaches' %}selected{% endif %}>
+    Beaches and lake tourism
+</option>
+
+<option value="Relaxation"
+    {% if preferences and preferences['interest_category'] == 'Relaxation' %}selected{% endif %}>
+    Relaxation
+</option>
 
                     </select>
                 </div>
+
+                <div class="form-group">
+    
+                  </div>
 
                 <button type="submit" class="primary-button">
                     Save My Preferences
