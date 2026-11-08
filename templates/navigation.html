@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation | Malawi Tourism</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        .navigation-page {
+            max-width: 1200px;
+            margin: 35px auto;
+            padding: 20px;
+        }
+
+        .navigation-hero {
+            background: linear-gradient(135deg, #075b43, #15966d);
+            color: white;
+            padding: 40px 25px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .navigation-hero h1 {
+            margin-bottom: 10px;
+        }
+
+        .map-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+            margin-bottom: 35px;
+        }
+
+        .map-section h2 {
+            color: #075b43;
+            margin-bottom: 10px;
+        }
+
+        .map-search {
+            display: flex;
+            gap: 10px;
+            margin: 18px 0;
+        }
+
+        .map-search input {
+            flex: 1;
+            padding: 13px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .map-search button {
+            background: #087b55;
+            color: white;
+            border: none;
+            padding: 12px 22px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .map-search button:hover {
+            background: #05583d;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 480px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .map-container iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        .destination-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .navigation-card {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+        }
+
+        .navigation-card h3 {
+            color: #075b43;
+            margin-bottom: 10px;
+        }
+
+        .directions-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #087b55, #12a477);
+            color: white;
+            padding: 12px 22px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 15px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .directions-button:hover {
+            background: #05583d;
+        }
+
+        .navigation-back {
+            display: inline-block;
+            margin-top: 25px;
+            color: #087b55;
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            .map-search {
+                flex-direction: column;
+            }
+
+            .map-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="navigation-page">
+
+    <section class="navigation-hero">
+        <h1>Explore Malawi with Ease</h1>
+        <p>Explore destinations and discover places using the interactive Google Map.</p>
+    </section>
+
+    <!-- Embedded Google Map -->
+    <section class="map-section">
+
+        <h2>Explore the Map</h2>
+
+        <p>
+            Search for a town, tourist attraction or any other location
+            to explore places across Malawi and beyond.
+        </p>
+
+        <form class="map-search" id="mapSearchForm">
+            <input
+                type="text"
+                id="mapSearchInput"
+                placeholder="Search for a place or location..."
+                required
+            >
+
+            <button type="submit">Search Map</button>
+        </form>
+
+        <div class="map-container">
+
+            <iframe
+                id="googleMap"
+                src="https://www.google.com/maps?q=Malawi&output=embed"
+                allowfullscreen
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                title="Interactive Google Map">
+            </iframe>
+
+        </div>
+
+    </section>
+
+    <!-- Database Destinations -->
+    <h2>Destination Navigation</h2>
+
+    <p>
+        Select any destination below to view its location on the map.
+    </p>
+
+    <div class="destination-list">
+
+        {% for destination in destinations %}
+
+        <div class="navigation-card">
+
+            <h3>{{ destination.name }}</h3>
+
+            <p>
+                <strong>Location:</strong>
+                {{ destination.location }}
+            </p>
+
+            <button
+                type="button"
+                class="directions-button destination-button"
+                data-location="{{ (destination.name ~ ', ' ~ destination.location ~ ', Malawi')|e }}">
+                View on Map →
+            </button>
+
+        </div>
+
+        {% else %}
+
+        <p>No destinations are currently available.</p>
+
+        {% endfor %}
+
+    </div>
+
+    <a class="navigation-back" href="{{ url_for('dashboard') }}">
+        ← Back to Dashboard
+    </a>
+
+</div>
+
+<script>
+
+    const googleMap = document.getElementById("googleMap");
+
+    // Search for any location on Google Maps
+    document.getElementById("mapSearchForm").addEventListener("submit", function(event) {
+
+        event.preventDefault();
+
+        const location = document.getElementById("mapSearchInput").value.trim();
+
+        if (location) {
+            googleMap.src =
+                "https://www.google.com/maps?q=" +
+                encodeURIComponent(location) +
+                "&output=embed";
+        }
+
+    });
+
+    // Display selected database destination on the map
+    document.querySelectorAll(".destination-button").forEach(function(button) {
+
+        button.addEventListener("click", function() {
+
+            const location = this.dataset.location;
+
+            googleMap.src =
+                "https://www.google.com/maps?q=" +
+                encodeURIComponent(location) +
+                "&output=embed";
+
+            document.getElementById("mapSearchInput").value = location;
+
+            document.querySelector(".map-section").scrollIntoView({
+                behavior: "smooth"
+            });
+
+        });
+
+    });
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My User Profile | Explore Malawi</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <div class="user-profile-page">
+
+        <div class="user-profile-container">
+
+            <div class="profile-heading">
+                <h1>My User Profile</h1>
+                <p>View and manage your personal account information.</p>
+            </div>
+
+            <div class="user-profile-card">
+
+                <div class="profile-avatar">
+                    👤
+                </div>
+
+                <h2>{{ user.username }}</h2>
+                <p class="profile-account-label">Tourist Account</p>
+
+                <div class="profile-information">
+
+                    <div class="profile-info-item">
+                        <span>Username</span>
+                        <strong>{{ user.username }}</strong>
+                    </div>
+
+                    <div class="profile-info-item">
+                        <span>Email Address</span>
+                        <strong>{{ user.email }}</strong>
+                    </div>
+
+                    <div class="profile-info-item">
+                        <span>Account ID</span>
+                        <strong>{{ user.id }}</strong>
+                    </div>
+
+                </div>
+
+                <div class="profile-actions">
+
+                    <a href="{{ url_for('preferences') }}"
+                       class="module-button">
+                        Edit Travel Preferences →
+                    </a>
+
+                    <a href="{{ url_for('dashboard') }}"
+                       class="module-button profile-back-button">
+                        Back to Dashboard
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

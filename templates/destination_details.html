@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ destination.name }} | Explore Malawi</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        .details-container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .details-hero {
+            background: #eaf5ee;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .details-hero h1 {
+            color: #176b43;
+            margin-bottom: 10px;
+        }
+
+        .details-main-image {
+            width: 100%;
+            height: 420px;
+            object-fit: cover;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+
+        .details-gallery {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 20px 0 35px;
+        }
+
+        .details-gallery img {
+            width: 100%;
+            height: 130px;
+            object-fit: cover;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .details-section {
+            background: white;
+            padding: 25px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+        }
+
+        .details-section h2 {
+            color: #176b43;
+            margin-bottom: 15px;
+        }
+
+        .details-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .details-button {
+            display: inline-block;
+            padding: 13px 22px;
+            border-radius: 8px;
+            background: #176b43;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .details-button:hover {
+            background: #105333;
+        }
+
+        .details-button.secondary {
+            background: #e8f1eb;
+            color: #176b43;
+        }
+
+        @media (max-width: 650px) {
+            .details-main-image {
+                height: 250px;
+            }
+
+            .details-gallery {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+{% set image_folders = {
+    'Lake Malawi': 'lake-malawi',
+    'Liwonde National Park': 'liwonde',
+    'Mount Mulanje': 'mount_mulanje',
+    'Nyika National Park': 'nyika',
+    'Lake Chilwa': 'lake_chilwa',
+    'Majete Wildlife reserve': 'majete',
+    'Kasungu National Park': 'kasungu',
+    'Nkhotankhota Wildlife Reserve': 'nkhotkota',
+    'Vwaza Wildlife Reserve': 'vwaza',
+    'Zomba Plateu': 'zomba-plateau',
+    'Fort Matete Site': 'fort-matete',
+    'Malape Pillars': 'malape-pillars',
+    'Fort Mangochi': 'fort-mangochi',
+    'Zoa Falls': 'zoa-falls',
+    'Mpoto Lagoon (Phalombe)': 'mpoto-lagoon'
+} %}
+
+{% set folder = image_folders.get(destination.name, 'lake-malawi') %}
+
+<div class="details-container">
+
+    <div class="details-hero">
+        <h1>{{ destination.name }}</h1>
+        <p>Explore the beauty and experiences of {{ destination.location }}, Malawi.</p>
+    </div>
+
+    <img class="details-main-image"
+         src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/main.jpg') }}"
+         alt="{{ destination.name }}">
+
+    <div class="details-gallery">
+        {% for number in range(1, 5) %}
+            <img
+                src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/gallery' ~ number ~ '.jpg') }}"
+                alt="{{ destination.name }} gallery photo"
+                onclick="openPhoto(this.src)">
+        {% endfor %}
+    </div>
+
+    <div class="details-section">
+        <h2>About this destination</h2>
+        <p>{{ destination.description }}</p>
+    </div>
+
+    <div class="details-section">
+        <h2>Location</h2>
+        <p>{{ destination.location }}, Malawi</p>
+    </div>
+
+    <div class="details-section">
+        <h2>Available Activities</h2>
+        <p>{{ destination.activities }}</p>
+    </div>
+
+    <div class="details-section">
+        <h2>Budget Information</h2>
+        <p>Budget category: {{ destination.budget_level }}</p>
+    </div>
+
+    <div class="details-section">
+        <h2>Explore this destination</h2>
+
+        <div class="details-actions">
+
+            <a class="details-button"
+               href="https://www.google.com/maps/dir/?api=1&destination={{ (destination.name ~ ', ' ~ destination.location ~ ', Malawi') | urlencode }}"
+               target="_blank"
+               rel="noopener noreferrer">
+                Get Directions →
+            </a>
+
+            <a class="details-button secondary"
+               href="{{ url_for('chatbot') }}">
+                Ask Tourism AI
+            </a>
+
+            <a class="details-button secondary"
+               href="{{ url_for('recommendations') }}">
+                Back to Recommendations
+            </a>
+
+        </div>
+    </div>
+
+</div>
+
+<div id="photoModal"
+     onclick="this.style.display='none'"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:9999; justify-content:center; align-items:center; cursor:pointer;">
+
+    <img id="largePhoto"
+         style="max-width:90%; max-height:90%; object-fit:contain;">
+</div>
+
+<script>
+    function openPhoto(imageSource) {
+        document.getElementById('largePhoto').src = imageSource;
+        document.getElementById('photoModal').style.display = 'flex';
+    }
+</script>
+
+</body>
+</html>

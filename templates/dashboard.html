@@ -6,18 +6,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-```
+
 <title>Dashboard | Explore Malawi</title>
 
 <link rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}">
-```
+
 
 </head>
 
 <body class="dashboard-page">
 
-```
+
 <!-- Navigation -->
 <header class="navbar">
 
@@ -74,7 +74,7 @@
         <div class="hero-oval-gallery">
 
             <div class="oval-image oval-one">
-                <img src="{{ url_for('static', filename='images/lake-malawi.jpg') }}"
+                <img src="{{ url_for('static', filename='images/gallery-culture.jpg') }}"
                      alt="Beautiful Lake Malawi">
             </div>
 
@@ -107,117 +107,101 @@
 
         <div class="feature-container">
 
-
-            <!-- Destinations -->
-            <article class="feature-card">
-
-                <div class="feature-image">
-                    <img src="{{ url_for('static', filename='images/card-destinations.jpg') }}"
-                         alt="Malawi tourism destinations">
-                </div>
-
-                <div class="feature-details">
-
-                    <div class="feature-icon">📍</div>
-
-                    <h3>Explore Destinations</h3>
-
-                    <p>
-                        Discover beautiful places across Malawi.
-                    </p>
-
-                    <span class="dashboard-status">
-                        Coming Soon
-                    </span>
-
-                </div>
-
-            </article>
-
-
-            <!-- Preferences -->
-            <article class="feature-card">
-
-                <div class="feature-image">
-                    <img src="{{ url_for('static', filename='images/card-preferences.jpg') }}"
-                         alt="Travel planning">
-                </div>
-
-                <div class="feature-details">
-
-                    <div class="feature-icon">✈️</div>
-
-                    <h3>Travel Preferences</h3>
-
-                    <p>
-                        Set your travel preferences and interests.
-                    </p>
-
-                    <a href="{{ url_for('preferences') }}"
-                       class="card-link">
-                        Plan Your Trip →
-                    </a>
-
-                </div>
-
-            </article>
-
-
-            <!-- Recommendations -->
-            <article class="feature-card">
-
-                <div class="feature-image">
-                    <img src="{{ url_for('static', filename='images/card-recommendations.jpg') }}"
-                         alt="Malawi mountain landscape">
-                </div>
-
-                <div class="feature-details">
-
-                    <div class="feature-icon">⭐</div>
-
-                    <h3>Personalized Recommendations</h3>
-
-                    <p>
-                        Find destinations that match your interests.
-                    </p>
-
-                    <a href="{{ url_for('recommendations') }}"
-                       class="card-link">
-                        View Recommendations →
-                    </a>
-
-                </div>
-
-            </article>
-
-
-            <!-- Travel Assistant -->
-            <article class="feature-card">
-
-                <div class="feature-image">
-                    <img src="{{ url_for('static', filename='images/card-assistant.jpg') }}"
-                         alt="Travel assistance">
-                </div>
-
-                <div class="feature-details">
-
-                    <div class="feature-icon">💬</div>
-
-                    <h3>Travel Assistant</h3>
-
-                    <p>
-                        Get help with your travel plans.
-                    </p>
-
-                    <span class="dashboard-status">
-                        Coming Soon
-                    </span>
-
-                </div>
-
-            </article>
-
+    <!-- Destinations -->
+    <article class="feature-card">
+        <div class="feature-image">
+            <img src="{{ url_for('static', filename='images/card-destinations.jpg') }}"
+                 alt="Malawi tourism destinations">
         </div>
+
+        <div class="feature-details">
+            <div class="feature-icon">📍</div>
+            <h3>Explore Destinations</h3>
+            <p>Discover beautiful places across Malawi.</p>
+
+            <a href="{{ url_for('navigation') }}" class="module-button">
+                Explore Destinations →
+            </a>
+        </div>
+    </article>
+
+
+    <!-- Preferences -->
+    <article class="feature-card">
+        <div class="feature-image">
+            <img src="{{ url_for('static', filename='images/card-preferences.jpg') }}"
+                 alt="Travel planning">
+        </div>
+
+        <div class="feature-details">
+            <div class="feature-icon">✈️</div>
+            <h3>Travel Preferences</h3>
+            <p>Set your travel preferences and interests.</p>
+
+            <a href="{{ url_for('preferences') }}" class="module-button">
+                Plan Your Trip →
+            </a>
+        </div>
+    </article>
+
+
+    <!-- Recommendations -->
+    <article class="feature-card">
+        <div class="feature-image">
+            <img src="{{ url_for('static', filename='images/card-recommendations.jpg') }}"
+                 alt="Malawi mountain landscape">
+        </div>
+
+        <div class="feature-details">
+            <div class="feature-icon">⭐</div>
+            <h3>Personalized Recommendations</h3>
+            <p>Find destinations that match your interests.</p>
+
+            <a href="{{ url_for('recommendations') }}" class="module-button">
+                View Recommendations →
+            </a>
+        </div>
+    </article>
+
+
+    <!-- Conversational AI -->
+    <article class="feature-card">
+        <div class="feature-image">
+            <img src="{{ url_for('static', filename='images/card-assistant.jpg') }}"
+                 alt="AI travel assistance">
+        </div>
+
+        <div class="feature-details">
+            <div class="feature-icon">🤖</div>
+            <h3>Conversational AI</h3>
+            <p>Ask questions and get helpful travel guidance.</p>
+
+            <a href="{{ url_for('chatbot') }}" class="module-button">
+                Chat with AI →
+            </a>
+        </div>
+    </article>
+
+
+    <!-- User Profile -->
+    <article class="feature-card">
+        <div class="feature-image">
+            <img src="{{ url_for('static', filename='images/card-profile.jpg') }}"
+                 alt="Tourist user profile">
+        </div>
+
+        <div class="feature-details">
+            <div class="feature-icon">👤</div>
+            <h3>User Profile</h3>
+            <p>View and manage your personal account and travel information.</p>
+
+         <a href="{{ url_for('user_profile') }}" class="module-button">
+    Open Profile →
+</a>
+        </div>
+    </article>
+
+</div>
 
     </section>
 
@@ -302,7 +286,7 @@
     </p>
 
 </footer>
-```
+
 
 </body>
 </html>

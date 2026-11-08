@@ -1,47 +1,166 @@
-<!DOCTYPE html>
 
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recommended Destinations</title>
+    <title>Personalised Recommendations</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
+
 <body>
 
+<div class="recommendations-page">
 
-<div class="container">
-    <h1>Recommended Destinations</h1>
+    <div class="recommendations-hero">
+        <h1>Destinations Picked for You</h1>
+        <p>Explore destinations selected according to your travel preferences.</p>
+    </div>
 
-    <p>Here are the destinations that best match your travel preferences.</p>
+    <div class="container">
 
-    {% if recommendations %}
-        {% for destination in recommendations %}
-            <div class="destination-card">
-                <h2>{{ destination.name }}</h2>
+        {% if recommendations %}
 
-                <p><strong>Location:</strong> {{ destination.location }}</p>
-
-                <p><strong>Description:</strong> {{ destination.description }}</p>
-
-                <p><strong>Budget:</strong> {{ destination.budget_level }}</p>
-
-                <p><strong>Activities:</strong> {{ destination.activities }}</p>
-
-                
-
-                <p><strong>Match Score:</strong>
-                    {{ destination.match_score }}%
-                </p>
+            <div class="recommendation-heading">
+                <h2>Your Recommended Destinations</h2>
+                <p>Discover places that match your interests and travel budget.</p>
             </div>
-        {% endfor %}
-    {% else %}
-        <p>No recommendations available yet. Please save your travel preferences first.</p>
-    {% endif %}
 
-    <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+            <div class="recommendation-grid">
+
+                {% for destination in recommendations %}
+
+                    {% set image_folders = {
+                        'Lake Malawi': 'lake-malawi',
+                        'Liwonde National Park': 'liwonde',
+                        'Mount Mulanje': 'mount_mulanje',
+                        'Nyika National Park': 'nyika',
+                        'Lake Chilwa': 'lake_chilwa',
+                        'Majete Wildlife reserve': 'majete',
+                        'Kasungu National Park': 'kasungu',
+                        'Nkhotankhota Wildlife Reserve': 'nkhotakota',
+                        'Vwaza Wildlife Reserve': 'vwaza',
+                        'Zomba Plateu': 'zomba-plateau',
+                        'Fort Matete Site': 'fort-matete',
+                        'Malape Pillars': 'malape-pillars',
+                        'Fort Mangochi': 'fort-mangochi',
+                        'Zoa Falls': 'zoa-falls',
+                        'Mpoto Lagoon (Phalombe)': 'mpoto-lagoon'
+
+                    } %}
+
+                    {% set folder = image_folders.get(destination.name, 'lake-malawi') %}
+
+                    <div class="recommendation-card">
+
+    <div class="recommendation-image">
+        <img
+    src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/main.jpg') }}"
+    alt="{{ destination.name }}"
+    onclick="openGallery(this)"
+    style="cursor: pointer;"
+>
+
+        <span class="match-badge">
+            {{ destination.match_score }}% Match
+        </span>
+    </div>
+
+    <!-- Destination Photo Gallery -->
+    <div class="destination-gallery">
+
+        <img src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/gallery1.jpg') }}"
+             alt="Gallery photo 1"
+             onclick="openGallery(this)">
+
+        <img src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/gallery2.jpg') }}"
+             alt="Gallery photo 2"
+             onclick="openGallery(this)">
+
+        <img src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/gallery3.jpg') }}"
+             alt="Gallery photo 3"
+             onclick="openGallery(this)">
+
+        <img src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/gallery4.jpg') }}"
+             alt="Gallery photo 4"
+             onclick="openGallery(this)">
+
+    </div>
+
+    <div class="recommendation-content">
+
+        <h3>{{ destination.name }}</h3>
+
+        <p class="destination-location">
+            {{ destination.location }}
+        </p>
+
+        <p>{{ destination.description }}</p>
+
+        <div class="destination-information">
+
+            <p>
+                <strong>Budget:</strong>
+                {{ destination.budget_level|capitalize }}
+            </p>
+
+            <p>
+                <strong>Activities:</strong>
+                {{ destination.activities }}
+            </p>
+            <a href="{{ url_for('destination_details', destination_id=destination.destination_id) }}"
+   class="details-button">
+    See more →
+</a>
+
+        </div>
+
+    </div>
+
+</div>
+{% endfor %}
+
+            
+        
+        {% else %}
+
+            <div class="empty-recommendations">
+                <h2>No Recommendations Yet</h2>
+                <p>Please save your travel preferences to receive personalised destination recommendations.</p>
+            </div>
+
+        {% endif %}
+        <!-- Enlarged Photo Gallery Viewer -->
+<div id="galleryModal" class="gallery-modal" onclick="closeGallery(event)">
+
+    <button class="gallery-close" onclick="closeGallery(event)">
+        &times;
+    </button>
+
+    <button class="gallery-nav gallery-prev"
+            onclick="changeGallery(-1, event)">
+        &#10094;
+    </button>
+
+    <img id="galleryLargeImage" src="" alt="Destination photo">
+
+    <button class="gallery-nav gallery-next"
+            onclick="changeGallery(1, event)">
+        &#10095;
+    </button>
+
+    <p id="galleryCounter"></p>
+
 </div>
 
+        <div class="recommendation-back">
+            <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+        </div>
+
+    </div>
+
+</div>
 
 </body>
 </html>

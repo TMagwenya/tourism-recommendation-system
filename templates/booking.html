@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accommodation Booking | Malawi Tourism</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        .booking-page {
+            max-width: 1100px;
+            margin: 35px auto;
+            padding: 20px;
+        }
+
+        .booking-hero {
+            background: linear-gradient(135deg, #075b43, #15966d);
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+        }
+
+        .accommodation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .accommodation-card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+        }
+
+        .accommodation-card h3 {
+            color: #075b43;
+        }
+
+        .booking-form {
+            margin-top: 20px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .booking-form input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+        }
+
+        .booking-button {
+            background: #087b55;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            padding: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .booking-button:hover {
+            background: #05583d;
+        }
+
+        .booking-back {
+            display: inline-block;
+            margin-top: 25px;
+            color: #087b55;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+<div class="booking-page">
+
+    <section class="booking-hero">
+        <h1>Accommodation Booking</h1>
+        <p>Find a place to stay during your Malawi adventure.</p>
+    </section>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+
+    <h2>Available Accommodation</h2>
+
+    <div class="accommodation-grid">
+        {% for place in accommodations %}
+        <div class="accommodation-card">
+            <h3>{{ place.name }}</h3>
+            <p><strong>Location:</strong> {{ place.location }}</p>
+            <p>{{ place.description }}</p>
+            <p><strong>Contact:</strong> {{ place.contact }}</p>
+
+            <form class="booking-form" method="POST"
+                  action="{{ url_for('booking') }}">
+
+                <input type="hidden" name="accommodation_id"
+                       value="{{ place.accommodation_id }}">
+
+                <label>Check-in date</label>
+                <input type="date" name="check_in" required>
+
+                <label>Check-out date</label>
+                <input type="date" name="check_out" required>
+
+                <label>Number of guests</label>
+                <input type="number" name="guests" min="1"
+                       value="1" required>
+
+                <button type="submit" class="booking-button">
+                    Submit Booking Request
+                </button>
+            </form>
+        </div>
+        {% else %}
+            <p>No accommodation options have been added yet.</p>
+        {% endfor %}
+    </div>
+
+    <a class="booking-back" href="{{ url_for('dashboard') }}">
+        ← Back to Dashboard
+    </a>
+
+</div>
+</body>
+</html>

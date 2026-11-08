@@ -1,9 +1,13 @@
 import sqlite3
 from pathlib import Path
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash,jsonify
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required ,current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+
+
+
+
 
 class User(UserMixin):
     def __init__(self, user_id, username, email, password_hash):
@@ -78,6 +82,17 @@ def home():
 def dashboard():
     return render_template("dashboard.html")
 
+@app.route("/user-profile")
+@login_required
+def user_profile():
+
+    return render_template(
+        "user_profile.html",
+        user=current_user
+    )
+
+
+
 @app.route("/recommendations")
 @login_required
 def recommendations():
@@ -88,28 +103,57 @@ def recommendations():
         "recommendations.html",
         recommendations=recommendations_list
     )
+@app.route("/navigation")
+@login_required
+def navigation():
+    connection = get_db_connection()
+
+    try:
+        destinations = connection.execute(
+            "SELECT * FROM destinations ORDER BY name"
+        ).fetchall()
+    finally:
+        connection.close()
+
+    return render_template(
+        "navigation.html",
+        destinations=destinations
+    )
+
 
 
 @app.route("/preferences", methods=["GET", "POST"])
 @login_required
 def preferences():
+
     if request.method == "POST":
+
         preferred_location = request.form.get("preferred_location", "").strip()
         budget_raw = request.form.get("budget", "").strip()
         preferred_activity = request.form.get("preferred_activity", "").strip()
         interest_category = request.form.get("interest_category", "").strip()
-        duration_days = request.form.get("duration_days", "").strip()
+        duration_raw = request.form.get("duration_days", "").strip()
 
         try:
             budget = float(budget_raw)
-            duration_days = int(duration_days)
+            duration_days = int(duration_raw)
 
             if budget < 0 or duration_days < 1:
                 raise ValueError
 
         except ValueError:
             flash("Please enter a valid budget and travel duration.", "error")
-            return render_template("preferences.html")
+
+            return render_template(
+                "preferences.html",
+                preferences={
+                    "preferred_location": preferred_location,
+                    "budget": budget_raw,
+                    "preferred_activity": preferred_activity,
+                    "duration_days": duration_raw,
+                    "interest_category": interest_category
+                }
+            )
 
         connection = get_db_connection()
 
@@ -144,7 +188,7 @@ def preferences():
                     )
                 )
 
-                flash("Your preferences have been updated successfully!", "success")
+                #flash("Your preferences have been updated successfully!", "success")
 
             else:
                 connection.execute(
@@ -169,36 +213,36 @@ def preferences():
                     )
                 )
 
-                flash("Your preferences have been saved successfully!", "success")
+                #flash("Your preferences have been saved successfully!", "success")
 
             connection.commit()
 
         finally:
             connection.close()
 
-        return redirect(url_for("my_preferences"))
+        return redirect(url_for("recommendations"))
 
     connection = get_db_connection()
 
     try:
         saved_preferences = connection.execute(
-        """
-        SELECT *
-        FROM tourist_preferences
-        WHERE user_id = ?
-        ORDER BY preference_id DESC
-        LIMIT 1
-        """,
-        (current_user.id,)
-    ).fetchone()
+            """
+            SELECT *
+            FROM tourist_preferences
+            WHERE user_id = ?
+            ORDER BY preference_id DESC
+            LIMIT 1
+            """,
+            (current_user.id,)
+        ).fetchone()
 
     finally:
         connection.close()
 
     return render_template(
-    "preferences.html",
-    preferences=saved_preferences
-)
+        "preferences.html",
+        preferences=saved_preferences
+    )
 
 
 @app.route("/my-preferences")
@@ -243,7 +287,7 @@ def delete_preferences():
 
         connection.commit()
 
-        flash("Your preferences have been deleted successfully!", "success")
+        #flash("Your preferences have been deleted successfully!", "success")
 
     finally:
         connection.close()
@@ -350,7 +394,7 @@ def logout():
     
     logout_user()
     
-    return redirect(url_for("home"))
+    return redirect(url_for("login"))
 
 def classify_budget(budget):
     if budget < 100000:
@@ -393,9 +437,9 @@ def calculate_total_score(activity_score, budget_score,
                           location_score):
 
     total_score = (
-        (activity_score * 0.45) +
+        (activity_score * 0.25) +
         (budget_score * 0.30) +
-        (location_score * 0.25) 
+        (location_score * 0.45) 
         
     )
 
@@ -449,7 +493,19 @@ def generate_recommendations(user_id):
                 budget_score,
                 location_score,
                 
+              
+                
             )
+            print("DESTINATION:", destination["name"])
+            print("ACTIVITY SCORE:", activity_score)
+            print("BUDGET SCORE:", budget_score)
+            print("LOCATION SCORE:", location_score)
+            print("TOTAL SCORE:", total_score)
+            print("--------------------------")
+
+            # Exclude destinations that do not match any preference
+            if activity_score == 0 and location_score == 0:
+                continue
 
             destination_data = dict(destination)
             destination_data["match_score"] = total_score
@@ -622,8 +678,208 @@ def add_malawi_destinations():
         connection.execute(sql, values)
     connection.commit()
     connection.close()
- 
+    
+@app.route("/booking", methods=["GET", "POST"])
+@login_required
+def booking():
 
+    connection = get_db_connection()
+
+    try:
+        # Create booking tables if they do not exist
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS accommodations (
+                accommodation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                location TEXT NOT NULL,
+                description TEXT,
+                contact TEXT
+            )
+        """)
+
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS booking_requests (
+                booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                accommodation_id INTEGER NOT NULL,
+                check_in DATE NOT NULL,
+                check_out DATE NOT NULL,
+                guests INTEGER NOT NULL,
+                status TEXT DEFAULT 'Pending',
+                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                FOREIGN KEY (accommodation_id)
+                    REFERENCES accommodations(accommodation_id)
+            )
+        """)
+
+        if request.method == "POST":
+            accommodation_id = request.form.get("accommodation_id")
+            check_in = request.form.get("check_in")
+            check_out = request.form.get("check_out")
+            guests_raw = request.form.get("guests")
+
+            try:
+                guests = int(guests_raw)
+
+                if (not check_in or not check_out
+                        or check_out <= check_in or guests < 1):
+                    raise ValueError
+
+                accommodation = connection.execute(
+                    "SELECT accommodation_id FROM accommodations WHERE accommodation_id = ?",
+                    (accommodation_id,)
+                ).fetchone()
+
+                if not accommodation:
+                    flash("Please select a valid accommodation.", "error")
+                    return redirect(url_for("booking"))
+
+                connection.execute("""
+                    INSERT INTO booking_requests
+                    (user_id, accommodation_id, check_in, check_out, guests)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    current_user.id,
+                    accommodation_id,
+                    check_in,
+                    check_out,
+                    guests
+                ))
+
+                connection.commit()
+                flash("Your booking request has been submitted!", "success")
+
+            except (ValueError, TypeError):
+                flash("Please enter valid dates and number of guests.", "error")
+
+            return redirect(url_for("booking"))
+
+        accommodations = connection.execute(
+            "SELECT * FROM accommodations ORDER BY name"
+        ).fetchall()
+
+    finally:
+        connection.close()
+
+    return render_template(
+        "booking.html",
+        accommodations=accommodations
+    )
+@app.route("/chatbot/message", methods=["POST"])
+@login_required
+def chatbot_message():
+
+    if not gemini_client:
+        return jsonify({
+            "reply": "The AI assistant is not configured. Please check the API key."
+        }), 500
+
+    data = request.get_json(silent=True) or {}
+    message = data.get("message", "").strip()
+    history = data.get("history", [])
+
+    if not message:
+        return jsonify({"reply": "Please enter a question."}), 400
+
+    connection = get_db_connection()
+
+    try:
+        destinations = connection.execute("""
+            SELECT name, location, description, budget_level, activities
+            FROM destinations
+        """).fetchall()
+    finally:
+        connection.close()
+
+    destination_info = "\n".join([
+        f"Name: {d['name']}, Location: {d['location']}, "
+        f"Description: {d['description']}, "
+        f"Budget: {d['budget_level']}, Activities: {d['activities']}"
+        for d in destinations
+    ])
+
+    conversation = ""
+
+    for item in history[-10:]:
+        role = item.get("role", "")
+        text = item.get("text", "")
+
+        if role in ("user", "model") and isinstance(text, str):
+            speaker = "Tourist" if role == "user" else "Assistant"
+            conversation += f"\n{speaker}: {text[:1500]}"
+
+    prompt = f"""
+You are the Malawi Tourism Conversational Assistant.
+
+Your job is to help tourists understand and explore Malawi.
+
+Use the destination information below when answering questions.
+Do not invent hotel contacts, prices, opening hours or other specific facts.
+If information is unavailable, clearly say so.
+You may answer general tourism questions, explain activities,
+compare destinations and provide helpful travel guidance.
+Keep answers friendly, clear and reasonably short.
+
+DESTINATION INFORMATION:
+{destination_info}
+
+CONVERSATION:
+{conversation}
+
+Answer the tourist's latest question.
+"""
+
+    try:
+        response = gemini_client.models.generate_content(
+            model="gemini-3.5-flash-lite",
+            contents=prompt
+        )
+
+        return jsonify({
+            "reply": response.text or "Sorry, I couldn't generate an answer."
+        })
+
+    except Exception:
+        app.logger.exception("Gemini API request failed")
+        return jsonify({
+            "reply": "Sorry, the tourism assistant is temporarily unavailable. Please try again."
+        }), 500
+        
+@app.route("/chatbot")
+@login_required
+def chatbot():
+    return render_template("chatbot.html")
+
+@app.route("/destination/<int:destination_id>")
+@login_required
+def destination_details(destination_id):
+
+    
+
+    connection = get_db_connection()
+
+    try:
+        destination = connection.execute(
+            """
+            SELECT *
+            FROM destinations
+            WHERE destination_id = ?
+            """,
+            (destination_id,)
+        ).fetchone()
+
+    finally:
+        connection.close()
+
+    if not destination:
+        flash("Destination not found.", "error")
+        return redirect(url_for("recommendations"))
+
+    return render_template(
+        "destination_details.html",
+        destination=destination
+    )
+        
 @app.route("/check-destinations")
 def check_destinations():
     connection = get_db_connection()
@@ -638,6 +894,7 @@ def check_destinations():
         "number_of_destinations": len(destinations),
         "destinations": [dict(row) for row in destinations]
     }
+    
    
 if __name__ == "__main__":
     initialize_database()
