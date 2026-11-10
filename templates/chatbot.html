@@ -43,6 +43,8 @@
             margin: 10px 0;
             max-width: 85%;
             white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .user-message {
@@ -53,6 +55,14 @@
         .bot-message {
             background: #f0f2f2;
             margin-right: auto;
+        }
+
+        .message a {
+            color: #08734e;
+            text-decoration: underline;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            cursor: pointer;
         }
 
         .chat-form {
@@ -98,7 +108,9 @@
         <div id="chatMessages" aria-live="polite">
             <div class="message bot-message">
                 Hello! I'm your Malawi Tourism Assistant.
-                Ask me about destinations, activities and travel information.
+                I can answer general travel questions, search the web for
+                current information, and look up destinations, preferences
+                and bookings saved in this app.
             </div>
         </div>
 
@@ -106,7 +118,7 @@
             <input
                 type="text"
                 id="userMessage"
-                placeholder="Ask me about Malawi tourism..."
+                placeholder="Ask about Malawi, current travel info, or your saved preferences..."
                 required
             >
             <button type="submit" id="sendButton">Send</button>
@@ -168,9 +180,59 @@
     function addMessage(text, className) {
         const messageDiv = document.createElement("div");
         messageDiv.className = "message " + className;
-        messageDiv.textContent = text;
+
+        if (className === "bot-message") {
+            messageDiv.innerHTML = formatMessage(text);
+        } else {
+            messageDiv.textContent = text;
+        }
+
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function formatMessage(text) {
+        const escaped = text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+        const linked = escaped.replace(
+            /\[([^\]]+)\]\((https?:\/\/[^\s]+?)\)|(https?:\/\/[^\s<]+)/g,
+            function (match, label, markdownUrl, bareUrl) {
+                let url = markdownUrl || bareUrl;
+                let suffix = "";
+
+                const punctuation = url.match(/[.,;:!?]+$/);
+
+                if (punctuation) {
+                    suffix = punctuation[0];
+                    url = url.slice(0, -suffix.length);
+                }
+
+                while (
+                    url.endsWith(")") &&
+                    (url.match(/\(/g) || []).length <
+                        (url.match(/\)/g) || []).length
+                ) {
+                    suffix = ")" + suffix;
+                    url = url.slice(0, -1);
+                }
+
+                const linkText = label || url;
+
+                return (
+                    '<a href="' + url + '" target="_blank" ' +
+                    'rel="noopener noreferrer">' + linkText + "</a>" + suffix
+                );
+            }
+        );
+
+        return linked
+            .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+            .replace(/\n/g, "<br>");
     }
 </script>
 

@@ -1,9 +1,29 @@
+import html
+import json
+import os
+import re
 import sqlite3
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import requests
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash,jsonify
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required ,current_user
+from google import genai
+from google.genai import types
 from werkzeug.security import generate_password_hash, check_password_hash
+
+load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+
+gemini_client = (
+    genai.Client(api_key=GEMINI_API_KEY)
+    if GEMINI_API_KEY else None
+)
+
 
 
 
@@ -403,34 +423,139 @@ def classify_budget(budget):
         return "medium"
     else:
         return "high"
+
+
+# Destinations do not all store the region in the same way (some use
+# "Southern Region", others use a district such as "Mangochi" or
+# "Mulanje"). These keywords let us work out the real region of a place.
+REGION_KEYWORDS = {
+    "southern": (
+        "southern", "mangochi", "mulanje", "zomba", "thyolo", "phalombe",
+        "blantyre", "chikwawa", "nsanje", "machinga", "balaka", "liwonde"
+    ),
+    "central": (
+        "central", "kasungu", "lilongwe", "salima", "mchinji", "dedza",
+        "ntcheu", "dowa", "ntchisi", "nkhotakota"
+    ),
+    "northern": (
+        "northern", "nyika", "vwaza", "nkhata", "rumphi", "karonga",
+        "mzimba", "chitipa", "likoma", "matete"
+    )
+}
+
+# Interest categories are wider than activity names, so each interest is
+# linked to the activities that satisfy it.
+INTEREST_KEYWORDS = {
+    "nature": (
+        "nature", "hiking", "waterfall", "scenic", "wildlife",
+        "photography", "mountain", "forest", "lake", "camping"
+    ),
+    "adventure": (
+        "hiking", "climbing", "safari", "kayak", "canoe", "biking",
+        "camping", "scuba", "snorkel", "boat", "trekking",
+        "horse riding", "game drive"
+    ),
+    "wildlife": ("wildlife", "safari", "game drive"),
+    "culture": ("cultural", "historical", "village", "heritage", "site"),
+    "beaches": (
+        "swimming", "beach", "snorkel", "kayak", "boat", "lake",
+        "scuba", "fishing"
+    ),
+    "relaxation": (
+        "relax", "swimming", "boat", "photography", "scenic",
+        "nature walk", "lake"
+    )
+}
+
+
+def normalize_region(place_name):
+    """Return 'northern', 'central', 'southern' or '' for a place name."""
+    text = (place_name or "").lower().strip()
+
+    if not text or "anywhere" in text:
+        return ""
+
+    for region, keywords in REGION_KEYWORDS.items():
+        if any(keyword in text for keyword in keywords):
+            return region
+
+    return ""
+
+
 def calculate_activity_score(preferred_activity, destination_activities):
-    preferred = preferred_activity.lower().strip()
-    activities = destination_activities.lower()
+    preferred = (preferred_activity or "").lower().strip()
+    activities = (destination_activities or "").lower()
+
+    if not preferred or not activities:
+        return 0
 
     if preferred in activities:
         return 100
 
+    for keyword in INTEREST_KEYWORDS.get(preferred, ()):
+        if keyword in activities:
+            return 100
+
     return 0
+
 
 def calculate_budget_score(user_budget, destination_budget):
     user_category = classify_budget(user_budget)
 
-    if user_category == destination_budget.lower():
+    if user_category == (destination_budget or "").lower().strip():
         return 100
 
     return 0
 
-def calculate_location_score(preferred_location, destination_location):
-    preferred = preferred_location.lower().strip()
-    destination = destination_location.lower().strip()
 
-    if preferred == "":
+def calculate_location_score(preferred_location, destination_location,
+                             destination_name=""):
+    preferred = (preferred_location or "").lower().strip()
+
+    # "Anywhere in Malawi", or no choice at all, accepts every region.
+    if not preferred or "anywhere" in preferred:
         return 100
+
+    preferred_region = normalize_region(preferred)
+    destination_region = (
+        normalize_region(destination_name)
+        or normalize_region(destination_location)
+    )
+
+    if preferred_region and destination_region:
+        if preferred_region == destination_region:
+            return 100
+
+        return 0
+
+    # Fall back to text matching for places that are not recognised above.
+    destination = (destination_location or "").lower().strip()
 
     if preferred in destination or destination in preferred:
         return 100
 
     return 0
+
+
+def matches_preferred_region(preferred_location, destination_location,
+                             destination_name=""):
+    """Check whether a destination belongs to the chosen region."""
+    preferred = (preferred_location or "").lower().strip()
+
+    if not preferred or "anywhere" in preferred:
+        return True
+
+    preferred_region = normalize_region(preferred)
+
+    if not preferred_region:
+        return True
+
+    destination_region = (
+        normalize_region(destination_name)
+        or normalize_region(destination_location)
+    )
+
+    return destination_region == preferred_region
 
 
 def calculate_total_score(activity_score, budget_score,
@@ -467,12 +592,32 @@ def generate_recommendations(user_id):
             "SELECT * FROM destinations"
         ).fetchall()
 
+        preferred_location = preference["preferred_location"]
+
+        # The preferences form saves the choice as "interest_category",
+        # so use it whenever "preferred_activity" is empty.
+        preferred_activity = (
+            (preference["preferred_activity"] or "").strip()
+            or (preference["interest_category"] or "").strip()
+        )
+
         recommendations = []
 
         for destination in destinations:
 
+            # A tourist who chose a specific region must only receive
+            # destinations in that region. Without this check a Northern
+            # destination can outrank Southern ones because of its
+            # activity and budget points.
+            if not matches_preferred_region(
+                preferred_location,
+                destination["location"],
+                destination["name"]
+            ):
+                continue
+
             activity_score = calculate_activity_score(
-                preference["preferred_activity"],
+                preferred_activity,
                 destination["activities"]
             )
 
@@ -482,38 +627,37 @@ def generate_recommendations(user_id):
             )
 
             location_score = calculate_location_score(
-                preference["preferred_location"],
-                destination["location"]
+                preferred_location,
+                destination["location"],
+                destination["name"]
             )
-
-           
 
             total_score = calculate_total_score(
                 activity_score,
                 budget_score,
-                location_score,
-                
-              
-                
+                location_score
             )
-            print("DESTINATION:", destination["name"])
-            print("ACTIVITY SCORE:", activity_score)
-            print("BUDGET SCORE:", budget_score)
-            print("LOCATION SCORE:", location_score)
-            print("TOTAL SCORE:", total_score)
-            print("--------------------------")
 
-            # Exclude destinations that do not match any preference
-            if activity_score == 0 and location_score == 0:
+            # Exclude destinations that match neither the activity nor
+            # the budget preference.
+            if activity_score == 0 and budget_score == 0:
                 continue
 
             destination_data = dict(destination)
+            destination_data["activity_score"] = activity_score
+            destination_data["budget_score"] = budget_score
+            destination_data["location_score"] = location_score
             destination_data["match_score"] = total_score
 
             recommendations.append(destination_data)
 
         recommendations.sort(
-            key=lambda item: item["match_score"],
+            key=lambda item: (
+                item["match_score"],
+                item["location_score"],
+                item["budget_score"],
+                item["activity_score"]
+            ),
             reverse=True
         )
 
@@ -528,7 +672,7 @@ def add_malawi_destinations():
     destinations = [
         (
             "Lake Malawi",
-            "Mangochi",
+            "Southern Region",
             "A beautiful freshwater lake known for its clear water, beaches, and colourful fish.",
             "medium",
             "Swimming, Snorkelling, Kayaking, Boat Trips,Scuba diving",
@@ -544,7 +688,7 @@ def add_malawi_destinations():
         ),
         (
             "Mount Mulanje",
-            "Mulanje",
+            "Southern Region",
             "A spectacular mountain destination offering hiking trails, waterfalls, and scenic landscapes.",
             "medium",
             "Hiking, Mountain Climbing, Nature Walks, Photography",
@@ -576,7 +720,7 @@ def add_malawi_destinations():
         ),
         (
             "Kasungu National Park",
-            "Southern Region",
+            "Central Region",
             "The Park has over 300 species of birds which include a variety of waterbirds.",
             "medium",
             "Sport Fishing,Wildlife viewing,Bird Watching,historical sites visits, Wildlife Safari",
@@ -584,7 +728,7 @@ def add_malawi_destinations():
         ),
         (
             "Nkhotankhota Wildlife Reserve",
-            "Northern Region",
+            "Central Region",
             "Nkhotakota is a rugged terrain crossed by many rivers tumbling down the edge of the escarpment as they make their way to the lake",
             "medium",
             "Wildlife Safari,Fishing,Walking Safari,Canoeing,Bird Watching",
@@ -600,7 +744,7 @@ def add_malawi_destinations():
         ),
         (
             "Zomba Plateu",
-            "Northern Region",
+            "Southern Region",
             "Panoramic vantage points offering sweeping views across the Shire Valley, Lake Chilwa, and Mulanje Massif on clear days",
             "medium",
             "Horse Riding,mountain hiking"
@@ -645,8 +789,8 @@ def add_malawi_destinations():
     
     for destination in destinations:
         existing = connection.execute(
-            "SELECT 1 FROM destinations WHERE name = ? AND location = ?",
-            (destination[0], destination[1])
+            "SELECT destination_id FROM destinations WHERE name = ?",
+            (destination[0],)
         ).fetchone()
 
         if existing is None:
@@ -658,24 +802,24 @@ def add_malawi_destinations():
             """, destination)
 
         else:
-                
-            sql = """
+            connection.execute(
+                """
                 UPDATE destinations
-                SET description = ?,
+                SET location = ?,
+                    description = ?,
                     budget_level = ?,
                     activities = ?
-                WHERE name = ? AND location = ?
-            """
-
-            values = (
-                destination[2],
-                destination[3],
-                destination[4],
-                destination[0],
-                destination[1]
+                WHERE destination_id = ?
+                """,
+                (
+                    destination[1],
+                    destination[2],
+                    destination[3],
+                    destination[4],
+                    existing["destination_id"]
+                )
             )
 
-        connection.execute(sql, values)
     connection.commit()
     connection.close()
     
@@ -765,42 +909,396 @@ def booking():
         "booking.html",
         accommodations=accommodations
     )
+# ---------------------------------------------------------------------------
+# Tourism assistant (chatbot)
+# ---------------------------------------------------------------------------
+
+WEATHER_CODES = {
+    0: "Clear sky",
+    1: "Mainly clear",
+    2: "Partly cloudy",
+    3: "Overcast",
+    45: "Fog",
+    48: "Depositing rime fog",
+    51: "Light drizzle",
+    53: "Moderate drizzle",
+    55: "Dense drizzle",
+    56: "Light freezing drizzle",
+    57: "Dense freezing drizzle",
+    61: "Slight rain",
+    63: "Moderate rain",
+    65: "Heavy rain",
+    66: "Light freezing rain",
+    67: "Heavy freezing rain",
+    71: "Slight snowfall",
+    73: "Moderate snowfall",
+    75: "Heavy snowfall",
+    77: "Snow grains",
+    80: "Slight rain showers",
+    81: "Moderate rain showers",
+    82: "Violent rain showers",
+    85: "Slight snow showers",
+    86: "Heavy snow showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm with slight hail",
+    99: "Thunderstorm with heavy hail",
+}
+
+SEARCH_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0 Safari/537.36"
+    )
+}
+
+
+def clean_text(value):
+    """Remove HTML tags and extra whitespace from a text fragment."""
+    text = re.sub(r"<[^>]+>", " ", value or "")
+    text = html.unescape(text)
+
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def search_wikipedia(query):
+    """Return short Wikipedia results for a query."""
+    response = requests.get(
+        "https://en.wikipedia.org/w/api.php",
+        params={
+            "action": "query",
+            "list": "search",
+            "srsearch": query,
+            "format": "json",
+            "utf8": 1,
+            "srlimit": 3,
+        },
+        headers=SEARCH_HEADERS,
+        timeout=15,
+    )
+    response.raise_for_status()
+
+    results = response.json().get("query", {}).get("search", [])
+    items = []
+
+    for result in results:
+        title = result.get("title", "")
+
+        if not title:
+            continue
+
+        items.append({
+            "title": title,
+            "summary": clean_text(result.get("snippet")),
+            "url": "https://en.wikipedia.org/wiki/" + title.replace(" ", "_"),
+        })
+
+    return items
+
+
+def search_news(query):
+    """Return recent news results from Google News RSS."""
+    response = requests.get(
+        "https://news.google.com/rss/search",
+        params={
+            "q": query,
+            "hl": "en-US",
+            "gl": "US",
+            "ceid": "US:en",
+        },
+        headers=SEARCH_HEADERS,
+        timeout=15,
+    )
+    response.raise_for_status()
+
+    root = ET.fromstring(response.content)
+    items = []
+
+    for item in root.findall("./channel/item")[:5]:
+        items.append({
+            "title": clean_text(item.findtext("title")),
+            "source": clean_text(item.findtext("source")),
+            "published": clean_text(item.findtext("pubDate")),
+            "url": clean_text(item.findtext("link")),
+        })
+
+    return items
+
+
+def get_current_weather(place):
+    """Return current weather and a short forecast using Open-Meteo."""
+    geo_response = requests.get(
+        "https://geocoding-api.open-meteo.com/v1/search",
+        params={
+            "name": place,
+            "count": 1,
+            "language": "en",
+            "format": "json",
+        },
+        headers=SEARCH_HEADERS,
+        timeout=15,
+    )
+    geo_response.raise_for_status()
+
+    results = geo_response.json().get("results") or []
+
+    if not results:
+        return {"error": f"I could not find a place called '{place}'."}
+
+    location = results[0]
+
+    forecast_response = requests.get(
+        "https://api.open-meteo.com/v1/forecast",
+        params={
+            "latitude": location["latitude"],
+            "longitude": location["longitude"],
+            "current": (
+                "temperature_2m,relative_humidity_2m,apparent_temperature,"
+                "precipitation,weather_code,wind_speed_10m"
+            ),
+            "daily": (
+                "temperature_2m_max,temperature_2m_min,"
+                "precipitation_probability_max"
+            ),
+            "timezone": "auto",
+            "forecast_days": 3,
+        },
+        headers=SEARCH_HEADERS,
+        timeout=15,
+    )
+    forecast_response.raise_for_status()
+    forecast = forecast_response.json()
+
+    current = forecast.get("current", {})
+    daily = forecast.get("daily", {})
+
+    return {
+        "place": location.get("name"),
+        "country": location.get("country"),
+        "timezone": forecast.get("timezone"),
+        "current": {
+            "time": current.get("time"),
+            "condition": WEATHER_CODES.get(
+                current.get("weather_code"), "Unknown"
+            ),
+            "temperature_c": current.get("temperature_2m"),
+            "feels_like_c": current.get("apparent_temperature"),
+            "humidity_percent": current.get("relative_humidity_2m"),
+            "precipitation_mm": current.get("precipitation"),
+            "wind_kmh": current.get("wind_speed_10m"),
+        },
+        "daily": {
+            "dates": daily.get("time", []),
+            "max_c": daily.get("temperature_2m_max", []),
+            "min_c": daily.get("temperature_2m_min", []),
+            "rain_chance_percent": daily.get(
+                "precipitation_probability_max", []
+            ),
+        },
+    }
+
+
+def search_internet(query: str) -> str:
+    """Search the internet for current news and general information.
+
+    Use this tool for news, events, prices, opening hours, recent changes or
+    general background information. For weather, use the get_weather tool
+    instead.
+
+    Args:
+        query: The search question, for example "Malawi tourism news" or
+            "Lake Malawi water levels 2026".
+    """
+    text = (query or "").strip()
+
+    if not text:
+        return json.dumps({"error": "No search query was provided."})
+
+    try:
+        results = {
+            "query": text,
+            "news": search_news(text),
+            "wikipedia": search_wikipedia(text),
+            "note": (
+                "News results come from Google News and may be recent. "
+                "Mention the source URLs when you use this information."
+            ),
+        }
+
+        return json.dumps(results, default=str)
+
+    except Exception as error:
+        return json.dumps({
+            "error": f"The internet search failed: {error}"
+        })
+
+
+def get_weather(place: str) -> str:
+    """Get the current weather and a three-day forecast for a place.
+
+    Args:
+        place: The town, city or destination, for example "Lilongwe" or
+            "Mangochi".
+    """
+    try:
+        return json.dumps(
+            {"weather": get_current_weather(place)},
+            default=str
+        )
+
+    except Exception as error:
+        return json.dumps({
+            "error": f"The weather lookup failed: {error}"
+        })
+
+
+def search_tourism_database_tool(user_id):
+    """Build the database tool for one logged-in tourist."""
+
+    def search_tourism_database(query: str) -> str:
+        """Search the local Malawi tourism database.
+
+        Use this tool whenever the question is about the destinations stored
+        in this project, their region, budget level or activities, the
+        tourist's saved travel preferences, available accommodation, or the
+        tourist's booking requests.
+
+        Args:
+            query: Keywords describing what the tourist is looking for, for
+                example "wildlife destinations in the southern region" or
+                "my saved preferences and bookings".
+        """
+        connection = get_db_connection()
+
+        try:
+            preference = connection.execute(
+                """
+                SELECT preferred_location, budget, preferred_activity,
+                       duration_days, interest_category
+                FROM tourist_preferences
+                WHERE user_id = ?
+                ORDER BY preference_id DESC
+                LIMIT 1
+                """,
+                (user_id,)
+            ).fetchone()
+
+            destinations = connection.execute(
+                """
+                SELECT name, location, description, budget_level, activities
+                FROM destinations
+                ORDER BY name
+                """
+            ).fetchall()
+
+            accommodations = connection.execute(
+                """
+                SELECT name, location, description, contact
+                FROM accommodations
+                ORDER BY name
+                """
+            ).fetchall()
+
+            bookings = connection.execute(
+                """
+                SELECT a.name AS accommodation, a.location, b.check_in,
+                       b.check_out, b.guests, b.status
+                FROM booking_requests b
+                JOIN accommodations a
+                  ON a.accommodation_id = b.accommodation_id
+                WHERE b.user_id = ?
+                ORDER BY b.check_in DESC
+                """,
+                (user_id,)
+            ).fetchall()
+
+            words = [
+                word for word in re.findall(r"[a-z0-9]+", query.lower())
+                if len(word) > 2
+            ]
+
+            def relevance(row):
+                text = " ".join(
+                    str(row[key]) for key in row.keys()
+                ).lower()
+
+                return sum(1 for word in words if word in text)
+
+            scored_destinations = sorted(
+                (
+                    (relevance(destination), destination)
+                    for destination in destinations
+                ),
+                key=lambda item: item[0],
+                reverse=True
+            )
+
+            # Put the best matches first and drop rows that share no keyword.
+            matching_destinations = [
+                dict(destination)
+                for score, destination in scored_destinations
+                if score > 0
+            ]
+
+            # The destination table is small, so return everything when the
+            # keywords do not match a specific record.
+            if not matching_destinations:
+                matching_destinations = [
+                    dict(destination) for destination in destinations
+                ]
+
+            database_result = {
+                "tourist_saved_preferences": (
+                    dict(preference) if preference else None
+                ),
+                "destinations": matching_destinations,
+                "accommodations": [dict(row) for row in accommodations],
+                "tourist_bookings": [dict(row) for row in bookings],
+            }
+
+            return json.dumps(database_result, default=str)
+
+        finally:
+            connection.close()
+
+    return search_tourism_database
+
+
 @app.route("/chatbot/message", methods=["POST"])
 @login_required
 def chatbot_message():
 
     if not gemini_client:
         return jsonify({
-            "reply": "The AI assistant is not configured. Please check the API key."
+            "reply": (
+                "The AI assistant is not configured. "
+                "Add a valid GEMINI_API_KEY to the .env file."
+            )
         }), 500
 
     data = request.get_json(silent=True) or {}
-    message = data.get("message", "").strip()
+    message_raw = data.get("message", "")
+    message = message_raw.strip() if isinstance(message_raw, str) else ""
     history = data.get("history", [])
+
+    if not isinstance(history, list):
+        history = []
 
     if not message:
         return jsonify({"reply": "Please enter a question."}), 400
 
-    connection = get_db_connection()
-
-    try:
-        destinations = connection.execute("""
-            SELECT name, location, description, budget_level, activities
-            FROM destinations
-        """).fetchall()
-    finally:
-        connection.close()
-
-    destination_info = "\n".join([
-        f"Name: {d['name']}, Location: {d['location']}, "
-        f"Description: {d['description']}, "
-        f"Budget: {d['budget_level']}, Activities: {d['activities']}"
-        for d in destinations
-    ])
+    # The browser adds the current question to the history before sending it.
+    if (history and isinstance(history[-1], dict)
+            and history[-1].get("role") == "user"
+            and history[-1].get("text") == message):
+        history = history[:-1]
 
     conversation = ""
 
     for item in history[-10:]:
+        if not isinstance(item, dict):
+            continue
+
         role = item.get("role", "")
         text = item.get("text", "")
 
@@ -809,40 +1307,87 @@ def chatbot_message():
             conversation += f"\n{speaker}: {text[:1500]}"
 
     prompt = f"""
-You are the Malawi Tourism Conversational Assistant.
+You are the Malawi Tourism Conversational Assistant for the Explore Malawi website.
 
-Your job is to help tourists understand and explore Malawi.
+You can help in three ways:
+1. Answer general travel questions from your own knowledge.
+2. Use the search_tourism_database tool for information about the destinations,
+   activities, budget levels, accommodation, saved preferences and bookings
+   that belong to this project. Always use the tool instead of guessing about
+   those records.
+3. Use the search_internet tool for current news, events, prices, opening
+   hours or general background information, and the get_weather tool for
+   current weather and forecasts. Mention the source links when you use
+   internet results, and say clearly that the information is current.
 
-Use the destination information below when answering questions.
-Do not invent hotel contacts, prices, opening hours or other specific facts.
-If information is unavailable, clearly say so.
-You may answer general tourism questions, explain activities,
-compare destinations and provide helpful travel guidance.
-Keep answers friendly, clear and reasonably short.
+Rules:
+- Do not invent hotel contacts, prices, opening hours or other specific facts.
+- If the database or web search does not provide an answer, say so clearly.
+- Write in plain text with short paragraphs and simple numbered lists.
+  Avoid Markdown headings and tables.
+- When citing an internet source, use a short Markdown link such as
+  [Reuters](URL) instead of showing the full URL.
+- Keep answers friendly, clear and reasonably short.
 
-DESTINATION INFORMATION:
-{destination_info}
-
-CONVERSATION:
+PREVIOUS CONVERSATION:
 {conversation}
 
-Answer the tourist's latest question.
+Tourist's latest question:
+{message}
 """
 
+    database_tool = search_tourism_database_tool(current_user.id)
+
     try:
-        response = gemini_client.models.generate_content(
-            model="gemini-3.5-flash-lite",
-            contents=prompt
+        chat = gemini_client.chats.create(
+            model=GEMINI_MODEL,
+            config=types.GenerateContentConfig(
+                tools=[
+                    database_tool,
+                    search_internet,
+                    get_weather,
+                ],
+                temperature=0.4,
+            ),
         )
+
+        response = chat.send_message(prompt)
 
         return jsonify({
             "reply": response.text or "Sorry, I couldn't generate an answer."
         })
 
-    except Exception:
+    except Exception as error:
         app.logger.exception("Gemini API request failed")
+
+        error_text = str(error)
+
+        if (
+            "API key not valid" in error_text
+            or "UNAUTHENTICATED" in error_text
+            or "ACCESS_TOKEN_TYPE_UNSUPPORTED" in error_text
+        ):
+            return jsonify({
+                "reply": (
+                    "The Gemini API key in .env is not valid. Create a new "
+                    "key at https://aistudio.google.com/apikey and restart "
+                    "the application."
+                )
+            }), 500
+
+        if "RESOURCE_EXHAUSTED" in error_text or "429" in error_text:
+            return jsonify({
+                "reply": (
+                    "The assistant has reached its current usage limit. "
+                    "Please wait a minute and try again."
+                )
+            }), 429
+
         return jsonify({
-            "reply": "Sorry, the tourism assistant is temporarily unavailable. Please try again."
+            "reply": (
+                "Sorry, the tourism assistant is temporarily unavailable. "
+                "Please try again."
+            )
         }), 500
         
 @app.route("/chatbot")
