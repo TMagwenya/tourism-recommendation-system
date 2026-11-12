@@ -201,6 +201,14 @@
 
 <main class="preferences-container">
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p class="flash-message {{ category }}">
+                {{ message }}
+            </p>
+        {% endfor %}
+    {% endwith %}
+
     <section class="preferences-form-card">
 
         <h2 class="section-heading">📍 Where would you like to travel?</h2>

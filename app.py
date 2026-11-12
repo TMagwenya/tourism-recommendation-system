@@ -1,23 +1,42 @@
 import html
 import json
+import logging
 import os
 import re
+import socket
 import sqlite3
+import time
+import traceback
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+import httpx
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash,jsonify
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required ,current_user
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
+
+# Verified available with the existing API key (including tool calling).
+# Used only when the primary model keeps failing with a transient error.
+GEMINI_FALLBACK_MODEL = os.getenv(
+    "GEMINI_FALLBACK_MODEL", "gemini-3.1-flash-lite"
+).strip()
+
+GEMINI_MAX_RETRIES = 3
+GEMINI_RETRY_DELAYS = (1.0, 2.0, 4.0)
+GEMINI_MAX_RETRY_AFTER_SECONDS = 30.0
 
 gemini_client = (
     genai.Client(api_key=GEMINI_API_KEY)
@@ -42,9 +61,323 @@ BASE_DIR=Path(__file__).resolve().parent
 DATABASE=BASE_DIR /"tourism.db"
 SCHEMA_FILE = BASE_DIR / "database" / "schema.sql"
 
-# Required for Flask sessions.
-# Replace this development key before deploying the application.
-app.config["SECRET_KEY"] = "replace-this-with-a-random-secret-key"
+# Flask session signing key. It is loaded from .env (never hardcoded) and must
+# be a stable random value: regenerating it on every start would invalidate
+# existing sessions and log every user out.
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+
+if not SECRET_KEY or len(SECRET_KEY) < 32:
+    raise RuntimeError(
+        "SECRET_KEY is missing or too short. Add a strong random value to "
+        ".env as SECRET_KEY=<value> (at least 32 characters). Generate one "
+        "with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+    )
+
+app.config["SECRET_KEY"] = SECRET_KEY
+
+# Cookies are HttpOnly and SameSite by default. SESSION_COOKIE_SECURE stays
+# off for local HTTP development; set SESSION_COOKIE_SECURE=true in .env for
+# HTTPS deployments so the browser only sends the cookie over TLS.
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.getenv(
+        "SESSION_COOKIE_SECURE", "false"
+    ).strip().lower() in {"1", "true", "yes", "on"},
+)
+
+# Basic server-side email validation for registration.
+EMAIL_PATTERN = re.compile(
+    r"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+"
+    r"(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*"
+    r"@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
+)
+
+DESTINATION_IMAGES_DIR = BASE_DIR / "static" / "images" / "destinations"
+
+
+def is_valid_email(email):
+    """Return True for a plausible single email address."""
+    if not email or len(email) > 254 or ".." in email:
+        return False
+
+    return EMAIL_PATTERN.fullmatch(email) is not None
+
+
+@app.template_global()
+def destination_image_exists(folder, filename):
+    """Return True only when the requested destination image exists on disk."""
+    if not folder or not filename or Path(filename).name != filename:
+        return False
+
+    try:
+        directory = (DESTINATION_IMAGES_DIR / folder).resolve()
+        directory.relative_to(DESTINATION_IMAGES_DIR.resolve())
+    except (OSError, ValueError):
+        return False
+
+    return (directory / filename).is_file()
+
+
+@app.template_global()
+def destination_gallery_images(folder):
+    """Return the gallery images that actually exist for a destination."""
+    if not folder:
+        return []
+
+    try:
+        directory = (DESTINATION_IMAGES_DIR / folder).resolve()
+        directory.relative_to(DESTINATION_IMAGES_DIR.resolve())
+    except (OSError, ValueError):
+        return []
+
+    if not directory.is_dir():
+        return []
+
+    images = []
+
+    for path in directory.iterdir():
+        match = re.fullmatch(r"gallery(\d+)\.jpg", path.name)
+
+        if match and path.is_file():
+            images.append((int(match.group(1)), path.name))
+
+    return [name for _, name in sorted(images)]
+
+# ---------------------------------------------------------------------------
+# Gemini reliability: dedicated logging, error classification and retries
+# ---------------------------------------------------------------------------
+
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+APPLICATION_LOG_FILE = LOG_DIR / "application.log"
+
+APPLICATION_LOG_FILE_RESOLVED = str(APPLICATION_LOG_FILE.resolve())
+
+_file_handler = RotatingFileHandler(
+    APPLICATION_LOG_FILE,
+    maxBytes=1_000_000,
+    backupCount=3,
+    encoding="utf-8",
+)
+_file_handler.setFormatter(logging.Formatter(
+    "%(asctime)s %(levelname)s [%(name)s] %(message)s"
+))
+
+if not any(
+    isinstance(handler, RotatingFileHandler)
+    and getattr(handler, "baseFilename", "") == APPLICATION_LOG_FILE_RESOLVED
+    for handler in app.logger.handlers
+):
+    app.logger.addHandler(_file_handler)
+
+app.logger.setLevel(logging.INFO)
+
+AI_HIGH_DEMAND_MESSAGE = (
+    "The AI assistant is temporarily experiencing high demand. "
+    "Please try again shortly."
+)
+AI_QUOTA_MESSAGE = (
+    "The AI assistant has reached its usage limit for now. "
+    "Please wait a few minutes and try again."
+)
+AI_NETWORK_MESSAGE = (
+    "The connection to the AI service could not be established. "
+    "Check your internet connection and try again."
+)
+AI_AUTH_MESSAGE = (
+    "The Gemini API key in .env is not valid. Create a new "
+    "key at https://aistudio.google.com/apikey and restart "
+    "the application."
+)
+AI_UNEXPECTED_MESSAGE = (
+    "Sorry, the tourism assistant is temporarily unavailable. "
+    "Please try again."
+)
+
+
+def redact_sensitive_text(text):
+    """Remove API keys and key query parameters before logging."""
+    if not isinstance(text, str):
+        text = str(text)
+
+    if GEMINI_API_KEY:
+        text = text.replace(GEMINI_API_KEY, "[REDACTED]")
+
+    return re.sub(
+        r"(?i)((?:key|api_key|apikey)=)[^&\s\"']+",
+        r"\1[REDACTED]",
+        text,
+    )
+
+
+def get_gemini_error_code(error):
+    """Return the HTTP status code carried by a Gemini API error."""
+    if isinstance(error, genai_errors.APIError):
+        return error.code
+    return None
+
+
+def is_gemini_auth_error(error):
+    """True for permanent authentication/authorisation failures."""
+    if get_gemini_error_code(error) in (401, 403):
+        return True
+
+    error_text = str(error)
+    return (
+        "API key not valid" in error_text
+        or "UNAUTHENTICATED" in error_text
+        or "ACCESS_TOKEN_TYPE_UNSUPPORTED" in error_text
+        or "PERMISSION_DENIED" in error_text
+    )
+
+
+def is_gemini_quota_error(error):
+    """True for HTTP 429 / RESOURCE_EXHAUSTED responses."""
+    return (
+        get_gemini_error_code(error) == 429
+        or "RESOURCE_EXHAUSTED" in str(error)
+    )
+
+
+def is_gemini_unavailable(error):
+    """True for Gemini 5xx capacity/availability failures."""
+    if get_gemini_error_code(error) in (500, 502, 503, 504):
+        return True
+
+    error_text = str(error).upper()
+    return "UNAVAILABLE" in error_text or "503" in error_text
+
+
+def is_network_error(error):
+    """True for DNS, connection and timeout failures."""
+    if isinstance(
+        error,
+        (
+            httpx.ConnectError,
+            httpx.ConnectTimeout,
+            httpx.ReadTimeout,
+            httpx.WriteTimeout,
+            httpx.PoolTimeout,
+            httpx.TimeoutException,
+            ConnectionError,
+            TimeoutError,
+            socket.gaierror,
+            socket.timeout,
+        ),
+    ):
+        return True
+
+    error_text = str(error).lower()
+    markers = (
+        "getaddrinfo failed",
+        "name or service not known",
+        "nodename nor servname provided",
+        "temporary failure in name resolution",
+        "connection refused",
+        "connection reset",
+        "network is unreachable",
+        "failed to establish a new connection",
+        "max retries exceeded",
+        "connecterror",
+        "timed out",
+    )
+    return any(marker in error_text for marker in markers)
+
+
+def is_retryable_error(error):
+    """Transient failures that are worth retrying with backoff."""
+    return (
+        is_gemini_unavailable(error)
+        or is_gemini_quota_error(error)
+        or is_network_error(error)
+    )
+
+
+def parse_retry_after_seconds(error):
+    """Read a Retry-After hint from headers or Gemini error details."""
+    response = getattr(error, "response", None)
+    headers = getattr(response, "headers", None)
+
+    if headers is not None:
+        try:
+            value = headers.get("retry-after")
+        except Exception:
+            value = None
+
+        if value:
+            try:
+                return max(0.0, float(value))
+            except (TypeError, ValueError):
+                try:
+                    retry_at = parsedate_to_datetime(str(value))
+                    if retry_at.tzinfo is None:
+                        retry_at = retry_at.replace(tzinfo=timezone.utc)
+                    seconds = (
+                        retry_at - datetime.now(timezone.utc)
+                    ).total_seconds()
+                    return max(0.0, seconds)
+                except (TypeError, ValueError):
+                    pass
+
+    def find_retry_delay(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "retryDelay" and isinstance(value, str):
+                    match = re.fullmatch(r"([0-9.]+)s", value.strip())
+                    if match:
+                        return float(match.group(1))
+                found = find_retry_delay(value)
+                if found is not None:
+                    return found
+        elif isinstance(node, list):
+            for item in node:
+                found = find_retry_delay(item)
+                if found is not None:
+                    return found
+        return None
+
+    try:
+        delay = find_retry_delay(getattr(error, "details", None))
+    except Exception:
+        delay = None
+
+    return delay
+
+
+def send_gemini_message(chat, prompt):
+    """Send a chat message, retrying transient failures with backoff.
+
+    Retries three additional times after the initial attempt using delays of
+    about 1, 2 and 4 seconds. A Retry-After hint from Gemini is respected
+    (clamped to a sensible maximum). Permanent errors are re-raised at once.
+    """
+    for attempt in range(GEMINI_MAX_RETRIES + 1):
+        try:
+            return chat.send_message(prompt)
+        except Exception as error:
+            if attempt >= GEMINI_MAX_RETRIES or not is_retryable_error(error):
+                raise
+
+            delay = parse_retry_after_seconds(error)
+            if delay is None:
+                delay = GEMINI_RETRY_DELAYS[attempt]
+            delay = min(max(delay, 0.0), GEMINI_MAX_RETRY_AFTER_SECONDS)
+
+            app.logger.warning(
+                "Transient Gemini error on attempt %d of %d (%s: %s). "
+                "Retrying in %.1f seconds.",
+                attempt + 1,
+                GEMINI_MAX_RETRIES + 1,
+                type(error).__name__,
+                redact_sensitive_text(str(error))[:500],
+                delay,
+            )
+            time.sleep(delay)
+
+    raise RuntimeError("Gemini request failed without raising an exception")
+
 
 login_manager=LoginManager()
 login_manager.init_app(app)
@@ -154,6 +487,33 @@ def preferences():
         interest_category = request.form.get("interest_category", "").strip()
         duration_raw = request.form.get("duration_days", "").strip()
 
+        submitted_preferences = {
+            "preferred_location": preferred_location,
+            "budget": budget_raw,
+            "preferred_activity": preferred_activity,
+            "duration_days": duration_raw,
+            "interest_category": interest_category
+        }
+
+        missing_fields = []
+
+        if not preferred_location:
+            missing_fields.append("a preferred location")
+
+        if not interest_category:
+            missing_fields.append("a main interest")
+
+        if missing_fields:
+            flash(
+                "Please choose " + " and ".join(missing_fields) + ".",
+                "error"
+            )
+
+            return render_template(
+                "preferences.html",
+                preferences=submitted_preferences
+            )
+
         try:
             budget = float(budget_raw)
             duration_days = int(duration_raw)
@@ -166,13 +526,7 @@ def preferences():
 
             return render_template(
                 "preferences.html",
-                preferences={
-                    "preferred_location": preferred_location,
-                    "budget": budget_raw,
-                    "preferred_activity": preferred_activity,
-                    "duration_days": duration_raw,
-                    "interest_category": interest_category
-                }
+                preferences=submitted_preferences
             )
 
         connection = get_db_connection()
@@ -326,6 +680,10 @@ def register():
             flash("Please fill in all fields.", "error")
             return render_template("register.html")
 
+        if not is_valid_email(email):
+            flash("Please enter a valid email address.", "error")
+            return render_template("register.html")
+
         if len(username) < 3 or len(username) > 50:
             flash("Username must be between 3 and 50 characters.", "error")
             return render_template("register.html")
@@ -416,13 +774,29 @@ def logout():
     
     return redirect(url_for("login"))
 
+BUDGET_LOW_LIMIT = 100000
+BUDGET_MEDIUM_LIMIT = 500000
+
+
 def classify_budget(budget):
-    if budget < 100000:
+    if budget < BUDGET_LOW_LIMIT:
         return "low"
-    elif budget <= 500000:
+    elif budget <= BUDGET_MEDIUM_LIMIT:
         return "medium"
     else:
         return "high"
+
+
+def get_budget_scale():
+    """Return the budget thresholds used by classify_budget()."""
+    return {
+        "low": f"below MWK {BUDGET_LOW_LIMIT:,}",
+        "medium": (
+            f"MWK {BUDGET_LOW_LIMIT:,} to "
+            f"MWK {BUDGET_MEDIUM_LIMIT:,} inclusive"
+        ),
+        "high": f"above MWK {BUDGET_MEDIUM_LIMIT:,}",
+    }
 
 
 # Destinations do not all store the region in the same way (some use
@@ -1152,6 +1526,181 @@ def get_weather(place: str) -> str:
         })
 
 
+def format_mwk(amount):
+    """Format a Malawi Kwacha amount for the assistant prompt."""
+    if amount is None:
+        return "not set"
+
+    amount = float(amount)
+
+    if amount.is_integer():
+        return f"MWK {amount:,.0f}"
+
+    return f"MWK {amount:,.2f}"
+
+
+def get_latest_preference(user_id):
+    """Return the newest saved preference row for a tourist."""
+    connection = get_db_connection()
+
+    try:
+        return connection.execute(
+            """
+            SELECT preferred_location, budget, preferred_activity,
+                   duration_days, interest_category
+            FROM tourist_preferences
+            WHERE user_id = ?
+            ORDER BY preference_id DESC
+            LIMIT 1
+            """,
+            (user_id,)
+        ).fetchone()
+
+    finally:
+        connection.close()
+
+
+def build_preference_summary(preference):
+    """Build the authoritative preference summary used by the chatbot."""
+    if preference is None:
+        return None
+
+    budget = preference["budget"]
+    preferred_activity = (preference["preferred_activity"] or "").strip()
+    interest_category = (preference["interest_category"] or "").strip()
+
+    return {
+        "preferred_location": preference["preferred_location"],
+        "budget_mwk": budget,
+        "budget_category": (
+            classify_budget(budget) if budget is not None else None
+        ),
+        "preferred_activity": preferred_activity or None,
+        "interest_category": interest_category or None,
+        "activity_used_for_matching": (
+            preferred_activity or interest_category or None
+        ),
+        "duration_days": preference["duration_days"],
+    }
+
+
+def format_authoritative_preferences(preference_summary):
+    """Format saved preferences for every chatbot request."""
+    if not preference_summary:
+        return "No saved preferences were found for this tourist."
+
+    return (
+        f"- Preferred location: "
+        f"{preference_summary['preferred_location'] or 'not set'}\n"
+        f"- Budget: {format_mwk(preference_summary['budget_mwk'])}\n"
+        f"- Tourist budget category: "
+        f"{preference_summary['budget_category'] or 'unknown'}\n"
+        f"- Activity used for matching: "
+        f"{preference_summary['activity_used_for_matching'] or 'not set'}\n"
+        f"- Duration: "
+        f"{preference_summary['duration_days'] or 'not set'} days"
+    )
+
+
+def format_authoritative_recommendations(recommendations):
+    """Format the recommendation engine output for the chatbot prompt."""
+    if not recommendations:
+        return "No destinations matched the saved preferences."
+
+    lines = []
+
+    for item in recommendations:
+        lines.append(
+            f"- {item['name']} ({item['location']}): "
+            f"match_score {item['match_score']}, "
+            f"activity_score {item['activity_score']}, "
+            f"budget_score {item['budget_score']}, "
+            f"location_score {item['location_score']}, "
+            f"destination budget_level {item['budget_level']}"
+        )
+
+    return "\n".join(lines)
+
+
+def get_recommendations_tool(user_id):
+    """Build the recommendation tool for one logged-in tourist."""
+
+    def get_recommendations() -> str:
+        """Return this tourist's recommendations from the app's engine.
+
+        Use this tool whenever the question is about recommended
+        destinations, match scores, why destinations were recommended,
+        what the tourist can afford, or which destinations fit the saved
+        preferences. The scores and ordering come from
+        generate_recommendations() and must not be recalculated or changed.
+        """
+        recommendations = generate_recommendations(user_id)
+
+        return json.dumps({
+            "scoring_weights": {
+                "activity": 0.25,
+                "budget": 0.30,
+                "location": 0.45,
+            },
+            "recommendations": recommendations,
+            "note": (
+                "These are the only valid recommendations. Use match_score "
+                "and the score breakdown exactly as returned. Never invent, "
+                "recalculate, reorder, add or remove recommendations."
+            ),
+        }, default=str)
+
+    return get_recommendations
+
+
+TIME_SENSITIVE_PATTERN = re.compile(
+    r"\b(current|currently|today|now|latest|recent|news|trends?|"
+    r"202[0-9]|prices?|costs?|fees?|rates?|opening|events?|"
+    r"festivals?|season|availability)\b",
+    re.IGNORECASE,
+)
+
+
+def is_time_sensitive_question(message):
+    """Return True when a question needs current information."""
+    return bool(TIME_SENSITIVE_PATTERN.search(message or ""))
+
+
+def build_live_search_context(query):
+    """Run the configured live search and format its results for the prompt."""
+    try:
+        result = json.loads(search_internet(query))
+    except Exception as error:
+        return f"Live search failed: {error}"
+
+    if result.get("error"):
+        return f"Live search failed: {result['error']}"
+
+    news = result.get("news") or []
+    wikipedia = result.get("wikipedia") or []
+
+    if not news and not wikipedia:
+        return (
+            "No live results were found. Tell the tourist that the "
+            "information cannot be verified right now."
+        )
+
+    lines = []
+
+    for item in news[:5]:
+        lines.append(
+            f"- NEWS: {item.get('title')} | {item.get('source')} | "
+            f"{item.get('url')}"
+        )
+
+    for item in wikipedia[:3]:
+        lines.append(
+            f"- BACKGROUND: {item.get('title')} | {item.get('url')}"
+        )
+
+    return "\n".join(lines)
+
+
 def search_tourism_database_tool(user_id):
     """Build the database tool for one logged-in tourist."""
 
@@ -1160,8 +1709,9 @@ def search_tourism_database_tool(user_id):
 
         Use this tool whenever the question is about the destinations stored
         in this project, their region, budget level or activities, the
-        tourist's saved travel preferences, available accommodation, or the
-        tourist's booking requests.
+        tourist's saved travel preferences (including the app-calculated
+        budget_category), available accommodation, or the tourist's booking
+        requests.
 
         Args:
             query: Keywords describing what the tourist is looking for, for
@@ -1248,8 +1798,23 @@ def search_tourism_database_tool(user_id):
                 ]
 
             database_result = {
-                "tourist_saved_preferences": (
-                    dict(preference) if preference else None
+                "tourist_saved_preferences": build_preference_summary(
+                    preference
+                ),
+                "budget_scale": get_budget_scale(),
+                "destination_budget_level_meaning": (
+                    "Each destination's budget_level is the destination's "
+                    "own price tier. It is not the tourist's budget category."
+                ),
+                "expense_data_note": (
+                    "The database does not store accommodation prices, "
+                    "transport costs or park entrance fees. Never invent "
+                    "those amounts."
+                ),
+                "recommendation_note": (
+                    "Do not treat this destination list as recommendations. "
+                    "Use get_recommendations for the tourist's "
+                    "recommendations and match scores."
                 ),
                 "destinations": matching_destinations,
                 "accommodations": [dict(row) for row in accommodations],
@@ -1306,89 +1871,151 @@ def chatbot_message():
             speaker = "Tourist" if role == "user" else "Assistant"
             conversation += f"\n{speaker}: {text[:1500]}"
 
-    prompt = f"""
+    database_tool = search_tourism_database_tool(current_user.id)
+    recommendations_tool = get_recommendations_tool(current_user.id)
+
+    try:
+        preference = get_latest_preference(current_user.id)
+        preference_summary = build_preference_summary(preference)
+        recommendations = generate_recommendations(current_user.id)
+
+        preferences_text = format_authoritative_preferences(
+            preference_summary
+        )
+        recommendations_text = format_authoritative_recommendations(
+            recommendations
+        )
+        live_search_text = (
+            build_live_search_context(message)
+            if is_time_sensitive_question(message)
+            else "No live search was needed for this question."
+        )
+
+        prompt = f"""
 You are the Malawi Tourism Conversational Assistant for the Explore Malawi website.
 
-You can help in three ways:
-1. Answer general travel questions from your own knowledge.
-2. Use the search_tourism_database tool for information about the destinations,
-   activities, budget levels, accommodation, saved preferences and bookings
-   that belong to this project. Always use the tool instead of guessing about
-   those records.
-3. Use the search_internet tool for current news, events, prices, opening
-   hours or general background information, and the get_weather tool for
-   current weather and forecasts. Mention the source links when you use
-   internet results, and say clearly that the information is current.
+You can help in these ways:
+1. Answer general tourism questions naturally from your own knowledge.
+2. Use the search_tourism_database tool for the destinations, activities,
+   accommodation, saved preferences and bookings stored in this project.
+   Always use the tool instead of guessing about those records.
+3. Use the get_recommendations tool (or the authoritative recommendations
+   below) for recommended destinations, match scores and explanations. Both
+   come from the app's recommendation engine.
+4. Use the search_internet tool for current trends, prices, events, opening
+   hours or other time-sensitive information, and the get_weather tool for
+   current weather and forecasts.
+
+PREVIOUS CONVERSATION (may be outdated):
+{conversation}
+
+AUTHORITATIVE SAVED PREFERENCES (latest database row; overrides anything above):
+{preferences_text}
+
+AUTHORITATIVE RECOMMENDATIONS (computed by generate_recommendations; overrides anything above):
+{recommendations_text}
+
+LIVE SEARCH RESULTS (from the configured live search; use these for current facts):
+{live_search_text}
+
+Tourist's latest question:
+{message}
 
 Rules:
-- Do not invent hotel contacts, prices, opening hours or other specific facts.
-- If the database or web search does not provide an answer, say so clearly.
+- The tourist's budget category is exactly the "budget_category" value above
+  and in the database tool. Never classify the raw budget amount yourself,
+  and never use a destination's budget_level as the tourist's category.
+- A destination's budget_level describes that destination's price tier only.
+- Use the recommendations, match scores and score breakdown exactly as the app
+  returns them. Do not invent, recalculate, reorder, add or remove
+  recommendations, and do not recommend destinations outside the saved region
+  when a specific region is selected.
+- If the latest database data contradicts an earlier message in the
+  conversation, trust the latest database data and correct the earlier answer.
+- For current or time-sensitive information, rely only on the LIVE SEARCH
+  RESULTS above (or a targeted search_internet call). Every current fact or
+  trend must be supported by those results and cite a source link. Do not add
+  unsourced trends. If the results are missing, insufficient or say they
+  failed, tell the tourist the information cannot be verified right now.
+  Never invent current facts.
+- Never invent accommodation prices, transport costs, park entrance fees or
+  other travel expenses. Only quote amounts that appear in tool results;
+  otherwise tell the tourist to confirm with the provider.
+- Do not invent hotel contacts, opening hours or other specific facts.
 - Write in plain text with short paragraphs and simple numbered lists.
   Avoid Markdown headings and tables.
 - When citing an internet source, use a short Markdown link such as
   [Reuters](URL) instead of showing the full URL.
 - Keep answers friendly, clear and reasonably short.
-
-PREVIOUS CONVERSATION:
-{conversation}
-
-Tourist's latest question:
-{message}
 """
 
-    database_tool = search_tourism_database_tool(current_user.id)
-
-    try:
-        chat = gemini_client.chats.create(
-            model=GEMINI_MODEL,
-            config=types.GenerateContentConfig(
-                tools=[
-                    database_tool,
-                    search_internet,
-                    get_weather,
-                ],
-                temperature=0.4,
-            ),
+        generation_config = types.GenerateContentConfig(
+            tools=[
+                database_tool,
+                recommendations_tool,
+                search_internet,
+                get_weather,
+            ],
+            temperature=0.4,
         )
 
-        response = chat.send_message(prompt)
+        def open_chat(model_name):
+            return gemini_client.chats.create(
+                model=model_name,
+                config=generation_config,
+            )
+
+        try:
+            response = send_gemini_message(open_chat(GEMINI_MODEL), prompt)
+        except Exception as primary_error:
+            can_use_fallback = (
+                bool(GEMINI_FALLBACK_MODEL)
+                and GEMINI_FALLBACK_MODEL != GEMINI_MODEL
+                and is_retryable_error(primary_error)
+            )
+
+            if not can_use_fallback:
+                raise
+
+            app.logger.warning(
+                "Primary Gemini model %s failed after retries (%s: %s). "
+                "Trying fallback model %s.",
+                GEMINI_MODEL,
+                type(primary_error).__name__,
+                redact_sensitive_text(str(primary_error))[:500],
+                GEMINI_FALLBACK_MODEL,
+            )
+
+            response = send_gemini_message(
+                open_chat(GEMINI_FALLBACK_MODEL),
+                prompt,
+            )
 
         return jsonify({
             "reply": response.text or "Sorry, I couldn't generate an answer."
         })
 
     except Exception as error:
-        app.logger.exception("Gemini API request failed")
+        app.logger.error(
+            "Gemini chatbot request failed: %s: %s\n%s",
+            type(error).__name__,
+            redact_sensitive_text(str(error))[:2000],
+            redact_sensitive_text(traceback.format_exc()),
+        )
 
-        error_text = str(error)
+        if is_gemini_auth_error(error):
+            return jsonify({"reply": AI_AUTH_MESSAGE}), 500
 
-        if (
-            "API key not valid" in error_text
-            or "UNAUTHENTICATED" in error_text
-            or "ACCESS_TOKEN_TYPE_UNSUPPORTED" in error_text
-        ):
-            return jsonify({
-                "reply": (
-                    "The Gemini API key in .env is not valid. Create a new "
-                    "key at https://aistudio.google.com/apikey and restart "
-                    "the application."
-                )
-            }), 500
+        if is_gemini_quota_error(error):
+            return jsonify({"reply": AI_QUOTA_MESSAGE}), 429
 
-        if "RESOURCE_EXHAUSTED" in error_text or "429" in error_text:
-            return jsonify({
-                "reply": (
-                    "The assistant has reached its current usage limit. "
-                    "Please wait a minute and try again."
-                )
-            }), 429
+        if is_gemini_unavailable(error):
+            return jsonify({"reply": AI_HIGH_DEMAND_MESSAGE}), 503
 
-        return jsonify({
-            "reply": (
-                "Sorry, the tourism assistant is temporarily unavailable. "
-                "Please try again."
-            )
-        }), 500
+        if is_network_error(error):
+            return jsonify({"reply": AI_NETWORK_MESSAGE}), 503
+
+        return jsonify({"reply": AI_UNEXPECTED_MESSAGE}), 500
         
 @app.route("/chatbot")
 @login_required
@@ -1426,6 +2053,7 @@ def destination_details(destination_id):
     )
         
 @app.route("/check-destinations")
+@login_required
 def check_destinations():
     connection = get_db_connection()
 

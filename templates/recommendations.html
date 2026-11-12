@@ -20,6 +20,14 @@
 
     <div class="container">
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p class="flash-message {{ category }}">
+                    {{ message }}
+                </p>
+            {% endfor %}
+        {% endwith %}
+
         {% if recommendations %}
 
             <div class="recommendation-heading">
@@ -51,16 +59,19 @@
                     } %}
 
                     {% set folder = image_folders.get(destination.name, 'lake-malawi') %}
+                    {% set gallery_images = destination_gallery_images(folder) %}
 
                     <div class="recommendation-card">
 
     <div class="recommendation-image">
-        <img
-    src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/main.jpg') }}"
-    alt="{{ destination.name }}"
-    onclick="openGallery(this)"
-    style="cursor: pointer;"
->
+        {% if destination_image_exists(folder, 'main.jpg') %}
+            <img
+        src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/main.jpg') }}"
+        alt="{{ destination.name }}"
+        onclick="openGallery(this)"
+        style="cursor: pointer;"
+    >
+        {% endif %}
 
         <span class="match-badge">
             {{ destination.match_score }}% Match
@@ -68,25 +79,15 @@
     </div>
 
     <!-- Destination Photo Gallery -->
-    <div class="destination-gallery">
-
-        <img src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/gallery1.jpg') }}"
-             alt="Gallery photo 1"
-             onclick="openGallery(this)">
-
-        <img src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/gallery2.jpg') }}"
-             alt="Gallery photo 2"
-             onclick="openGallery(this)">
-
-        <img src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/gallery3.jpg') }}"
-             alt="Gallery photo 3"
-             onclick="openGallery(this)">
-
-        <img src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/gallery4.jpg') }}"
-             alt="Gallery photo 4"
-             onclick="openGallery(this)">
-
-    </div>
+    {% if gallery_images %}
+        <div class="destination-gallery">
+            {% for gallery_image in gallery_images %}
+                <img src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/' ~ gallery_image) }}"
+                     alt="{{ destination.name }} gallery photo"
+                     onclick="openGallery(this)">
+            {% endfor %}
+        </div>
+    {% endif %}
 
     <div class="recommendation-content">
 

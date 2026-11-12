@@ -111,7 +111,7 @@
     'Lake Chilwa': 'lake_chilwa',
     'Majete Wildlife reserve': 'majete',
     'Kasungu National Park': 'kasungu',
-    'Nkhotankhota Wildlife Reserve': 'nkhotkota',
+    'Nkhotankhota Wildlife Reserve': 'nkhotakota',
     'Vwaza Wildlife Reserve': 'vwaza',
     'Zomba Plateu': 'zomba-plateau',
     'Fort Matete Site': 'fort-matete',
@@ -130,18 +130,24 @@
         <p>Explore the beauty and experiences of {{ destination.location }}, Malawi.</p>
     </div>
 
-    <img class="details-main-image"
-         src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/main.jpg') }}"
-         alt="{{ destination.name }}">
+    {% if destination_image_exists(folder, 'main.jpg') %}
+        <img class="details-main-image"
+             src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/main.jpg') }}"
+             alt="{{ destination.name }}">
+    {% endif %}
 
-    <div class="details-gallery">
-        {% for number in range(1, 5) %}
-            <img
-                src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/gallery' ~ number ~ '.jpg') }}"
-                alt="{{ destination.name }} gallery photo"
-                onclick="openPhoto(this.src)">
-        {% endfor %}
-    </div>
+    {% set gallery_images = destination_gallery_images(folder) %}
+
+    {% if gallery_images %}
+        <div class="details-gallery">
+            {% for gallery_image in gallery_images %}
+                <img
+                    src="{{ url_for('static', filename='images/destinations/' ~ folder ~ '/' ~ gallery_image) }}"
+                    alt="{{ destination.name }} gallery photo"
+                    onclick="openPhoto(this.src)">
+            {% endfor %}
+        </div>
+    {% endif %}
 
     <div class="details-section">
         <h2>About this destination</h2>

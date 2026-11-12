@@ -778,6 +778,25 @@ text-decoration: underline;
 }
 
 /* Flash messages */
+.flash-message {
+padding: 12px 16px;
+border-radius: 8px;
+margin: 0 0 18px;
+text-align: center;
+overflow-wrap: anywhere;
+font-weight: 600;
+}
+
+.flash-message.success {
+background-color: #e8f5e9;
+color: #1b5e20;
+}
+
+.flash-message.error {
+background-color: #ffebee;
+color: #b71c1c;
+}
+
 .register-message {
 padding: 10px;
 border-radius: 6px;

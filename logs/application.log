@@ -1,0 +1,140 @@
+﻿
+2026-11-12 21:19:23,041 WARNING [app] Transient Gemini error on attempt 1 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}). Retrying in 1.0 seconds.
+2026-11-12 21:19:43,415 WARNING [app] Transient Gemini error on attempt 1 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}). Retrying in 1.0 seconds.
+2026-11-12 21:20:44,859 WARNING [app] Transient Gemini error on attempt 1 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}). Retrying in 1.0 seconds.
+2026-11-12 21:20:57,405 WARNING [app] Transient Gemini error on attempt 2 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}). Retrying in 2.0 seconds.
+2026-11-12 21:21:05,637 WARNING [app] Transient Gemini error on attempt 3 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}). Retrying in 4.0 seconds.
+2026-11-12 21:21:15,778 WARNING [app] Primary Gemini model gemini-3.5-flash-lite failed after retries (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}). Trying fallback model gemini-3.1-flash-lite.
+2026-11-12 21:21:57,734 WARNING [app] Transient Gemini error on attempt 1 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}). Retrying in 1.0 seconds.
+2026-11-12 21:21:57,931 WARNING [app] Transient Gemini error on attempt 1 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}). Retrying in 3.0 seconds.
+2026-11-12 21:21:58,130 WARNING [app] Transient Gemini error on attempt 1 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}). Retrying in 1.0 seconds.
+2026-11-12 21:21:58,130 WARNING [app] Transient Gemini error on attempt 2 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}). Retrying in 2.0 seconds.
+2026-11-12 21:21:58,130 WARNING [app] Transient Gemini error on attempt 3 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}). Retrying in 4.0 seconds.
+2026-11-12 21:21:58,130 WARNING [app] Primary Gemini model gemini-3.5-flash-lite failed after retries (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}). Trying fallback model gemini-3.1-flash-lite.
+2026-11-12 21:21:58,131 WARNING [app] Transient Gemini error on attempt 1 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}). Retrying in 1.0 seconds.
+2026-11-12 21:21:58,131 WARNING [app] Transient Gemini error on attempt 2 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}). Retrying in 2.0 seconds.
+2026-11-12 21:21:58,131 WARNING [app] Transient Gemini error on attempt 3 of 4 (ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}). Retrying in 4.0 seconds.
+2026-11-12 21:21:58,219 ERROR [app] Gemini chatbot request failed: ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}
+Traceback (most recent call last):
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 1864, in chatbot_message
+    response = send_gemini_message(open_chat(GEMINI_MODEL), prompt)
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 278, in send_gemini_message
+    return chat.send_message(prompt)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 63, in send_message
+    return self.behavior(self.model, self.counter["calls"])
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 132, in always_503
+    raise server_503()
+google.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 1884, in chatbot_message
+    response = send_gemini_message(
+        open_chat(GEMINI_FALLBACK_MODEL),
+        prompt,
+    )
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 278, in send_gemini_message
+    return chat.send_message(prompt)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 63, in send_message
+    return self.behavior(self.model, self.counter["calls"])
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 132, in always_503
+    raise server_503()
+google.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'High demand.', 'status': 'UNAVAILABLE'}}
+
+2026-11-12 21:21:58,486 WARNING [app] Transient Gemini error on attempt 1 of 4 (ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Quota exceeded.', 'status': 'RESOURCE_EXHAUSTED'}}). Retrying in 1.0 seconds.
+2026-11-12 21:21:58,486 WARNING [app] Transient Gemini error on attempt 2 of 4 (ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Quota exceeded.', 'status': 'RESOURCE_EXHAUSTED'}}). Retrying in 2.0 seconds.
+2026-11-12 21:21:58,486 WARNING [app] Transient Gemini error on attempt 3 of 4 (ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Quota exceeded.', 'status': 'RESOURCE_EXHAUSTED'}}). Retrying in 4.0 seconds.
+2026-11-12 21:21:58,486 WARNING [app] Primary Gemini model gemini-3.5-flash-lite failed after retries (ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Quota exceeded.', 'status': 'RESOURCE_EXHAUSTED'}}). Trying fallback model gemini-3.1-flash-lite.
+2026-11-12 21:21:58,487 WARNING [app] Transient Gemini error on attempt 1 of 4 (ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Quota exceeded.', 'status': 'RESOURCE_EXHAUSTED'}}). Retrying in 1.0 seconds.
+2026-11-12 21:21:58,487 WARNING [app] Transient Gemini error on attempt 2 of 4 (ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Quota exceeded.', 'status': 'RESOURCE_EXHAUSTED'}}). Retrying in 2.0 seconds.
+2026-11-12 21:21:58,487 WARNING [app] Transient Gemini error on attempt 3 of 4 (ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Quota exceeded.', 'status': 'RESOURCE_EXHAUSTED'}}). Retrying in 4.0 seconds.
+2026-11-12 21:21:58,489 ERROR [app] Gemini chatbot request failed: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Quota exceeded.', 'status': 'RESOURCE_EXHAUSTED'}}
+Traceback (most recent call last):
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 1864, in chatbot_message
+    response = send_gemini_message(open_chat(GEMINI_MODEL), prompt)
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 278, in send_gemini_message
+    return chat.send_message(prompt)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 63, in send_message
+    return self.behavior(self.model, self.counter["calls"])
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 136, in always_429
+    raise client_429()
+google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Quota exceeded.', 'status': 'RESOURCE_EXHAUSTED'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 1884, in chatbot_message
+    response = send_gemini_message(
+        open_chat(GEMINI_FALLBACK_MODEL),
+        prompt,
+    )
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 278, in send_gemini_message
+    return chat.send_message(prompt)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 63, in send_message
+    return self.behavior(self.model, self.counter["calls"])
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 136, in always_429
+    raise client_429()
+google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Quota exceeded.', 'status': 'RESOURCE_EXHAUSTED'}}
+
+2026-11-12 21:21:58,686 WARNING [app] Transient Gemini error on attempt 1 of 4 (ConnectError: [Errno 11001] getaddrinfo failed). Retrying in 1.0 seconds.
+2026-11-12 21:21:58,686 WARNING [app] Transient Gemini error on attempt 2 of 4 (ConnectError: [Errno 11001] getaddrinfo failed). Retrying in 2.0 seconds.
+2026-11-12 21:21:58,686 WARNING [app] Transient Gemini error on attempt 3 of 4 (ConnectError: [Errno 11001] getaddrinfo failed). Retrying in 4.0 seconds.
+2026-11-12 21:21:58,686 WARNING [app] Primary Gemini model gemini-3.5-flash-lite failed after retries (ConnectError: [Errno 11001] getaddrinfo failed). Trying fallback model gemini-3.1-flash-lite.
+2026-11-12 21:21:58,686 WARNING [app] Transient Gemini error on attempt 1 of 4 (ConnectError: [Errno 11001] getaddrinfo failed). Retrying in 1.0 seconds.
+2026-11-12 21:21:58,686 WARNING [app] Transient Gemini error on attempt 2 of 4 (ConnectError: [Errno 11001] getaddrinfo failed). Retrying in 2.0 seconds.
+2026-11-12 21:21:58,687 WARNING [app] Transient Gemini error on attempt 3 of 4 (ConnectError: [Errno 11001] getaddrinfo failed). Retrying in 4.0 seconds.
+2026-11-12 21:21:58,689 ERROR [app] Gemini chatbot request failed: ConnectError: [Errno 11001] getaddrinfo failed
+Traceback (most recent call last):
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 1864, in chatbot_message
+    response = send_gemini_message(open_chat(GEMINI_MODEL), prompt)
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 278, in send_gemini_message
+    return chat.send_message(prompt)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 63, in send_message
+    return self.behavior(self.model, self.counter["calls"])
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 140, in always_network
+    raise httpx.ConnectError("[Errno 11001] getaddrinfo failed")
+httpx.ConnectError: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 1884, in chatbot_message
+    response = send_gemini_message(
+        open_chat(GEMINI_FALLBACK_MODEL),
+        prompt,
+    )
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 278, in send_gemini_message
+    return chat.send_message(prompt)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 63, in send_message
+    return self.behavior(self.model, self.counter["calls"])
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 140, in always_network
+    raise httpx.ConnectError("[Errno 11001] getaddrinfo failed")
+httpx.ConnectError: [Errno 11001] getaddrinfo failed
+
+2026-11-12 21:21:58,884 ERROR [app] Gemini chatbot request failed: ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key not valid.', 'status': 'INVALID_ARGUMENT'}}
+Traceback (most recent call last):
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 1864, in chatbot_message
+    response = send_gemini_message(open_chat(GEMINI_MODEL), prompt)
+  File "C:\Users\TANATSWA\tourism recommendation system\app.py", line 278, in send_gemini_message
+    return chat.send_message(prompt)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 63, in send_message
+    return self.behavior(self.model, self.counter["calls"])
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\TANATSWA\AppData\Local\Temp\opencode\e2e_gemini_mocks.py", line 144, in always_invalid_key
+    raise invalid_key()
+google.genai.errors.ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key not valid.', 'status': 'INVALID_ARGUMENT'}}
+
